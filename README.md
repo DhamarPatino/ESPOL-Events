@@ -110,25 +110,4 @@ Ejecutar el servidor de desarrollo:
 npm run dev
 ```
 ## Avance 1: Backend
-
 Estado: Pendiente
-
-Integrante 1: Dhamar Patiño
- Implementar creación de eventos.
- Implementar consulta de eventos.
- Implementar búsqueda de eventos.
- Implementar filtros por categoría.
- Implementar filtros por fecha.
- Implementar filtros por facultad.
-Integrante 2: Cristina Pihuave
- Implementar consulta del detalle de un evento.
- Implementar actualización de eventos.
- Implementar eliminación de eventos.
- Implementar registro de participantes.
- Implementar cancelación de participación.
-Pruebas y documentación
- Realizar pruebas de endpoints.
- Probar endpoints utilizando Postman, navegador o consola.
- Capturar evidencias del backend funcionando.
- Actualizar la documentación del avance.
- Registrar los cambios en GitHub.
