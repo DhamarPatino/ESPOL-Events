@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
@@ -46,9 +47,12 @@ class EventController extends Controller
             if ($request->filled('search')) {
                 $search = $request->search;
 
-                $query->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                // En PostgreSQL (Supabase) "like" distingue mayusculas, por eso se usa "ilike"
+                $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+                $query->where(function ($q) use ($search, $like) {
+                    $q->where('title', $like, "%{$search}%")
+                    ->orWhere('description', $like, "%{$search}%");
                 });
             }
 
@@ -77,5 +81,96 @@ class EventController extends Controller
                 'events' => $events
             ]);
         }
+
+    // Consulta del detalle, actualizacion y eliminacion de eventos -- Cristina Pihuave
+
+    // GET /api/events/{id}
+    // Devuelve la informacion completa del evento junto con sus cupos
+    public function show($id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json([
+                'message' => 'Evento no encontrado.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Evento consultado correctamente.',
+            'event' => $event,
+            'registered_participants' => $event->registeredCount(),
+            'available_spots' => $event->availableSpots(),
+        ]);
+    }
+
+    // PUT / PATCH /api/events/{id}
+    // Actualiza uno o varios campos del evento
+    public function update(Request $request, $id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json([
+                'message' => 'Evento no encontrado.'
+            ], 404);
+        }
+
+        $validated = $request->validate([
+            'title' => 'sometimes|required|string|max:255',
+            'description' => 'sometimes|required|string',
+            'category' => 'sometimes|required|string|max:100',
+            'modality' => 'sometimes|required|string|max:50',
+            'faculty' => 'sometimes|required|string|max:100',
+            'date' => 'sometimes|required|date',
+            'start_time' => 'sometimes|required|date_format:H:i,H:i:s',
+            'location' => 'sometimes|required|string|max:255',
+            'max_participants' => 'sometimes|required|integer|min:1',
+        ]);
+
+        if (empty($validated)) {
+            return response()->json([
+                'message' => 'No se enviaron datos para actualizar.'
+            ], 422);
+        }
+
+        // No se permite reducir los cupos por debajo de los participantes ya inscritos
+        if (isset($validated['max_participants'])) {
+            $registered = $event->registeredCount();
+
+            if ($validated['max_participants'] < $registered) {
+                return response()->json([
+                    'message' => 'El máximo de participantes no puede ser menor a los inscritos actuales.',
+                    'registered_participants' => $registered,
+                ], 422);
+            }
+        }
+
+        $event->update($validated);
+
+        return response()->json([
+            'message' => 'Evento actualizado correctamente.',
+            'event' => $event->fresh(),
+        ]);
+    }
+
+    // DELETE /api/events/{id}
+    // Elimina el evento y sus inscripciones asociadas
+    public function destroy($id)
+    {
+        $event = Event::find($id);
+
+        if (!$event) {
+            return response()->json([
+                'message' => 'Evento no encontrado.'
+            ], 404);
+        }
+
+        $event->delete();
+
+        return response()->json([
+            'message' => 'Evento eliminado correctamente.'
+        ]);
+    }
 
 }

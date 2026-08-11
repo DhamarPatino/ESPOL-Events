@@ -20,4 +20,30 @@ class Event extends Model
         'location',
         'max_participants',
     ];
+
+    // Inscripciones y control de cupos -- Cristina Pihuave
+
+    // Un evento tiene muchas inscripciones
+    public function registrations()
+    {
+        return $this->hasMany(Registration::class);
+    }
+
+    // Cantidad de participantes inscritos
+    public function registeredCount()
+    {
+        return $this->registrations()->count();
+    }
+
+    // Cupos que quedan libres
+    public function availableSpots()
+    {
+        $libres = $this->max_participants - $this->registeredCount();
+
+        if ($libres < 0) {
+            $libres = 0;
+        }
+
+        return $libres;
+    }
 }

@@ -31,11 +31,12 @@ Desarrollar una plataforma web que facilite el acceso a la información de event
 ### Backend
 
 - PHP
+- Laravel
 - API REST
 
 ### Base de datos
 
-- Pendiente de configuración
+- PostgreSQL (Supabase)
 
 ### Prototipado
 
@@ -50,39 +51,88 @@ Desarrollar una plataforma web que facilite el acceso a la información de event
 
 # Backend
 
-El backend será desarrollado utilizando PHP y expondrá una API REST para permitir la comunicación con el frontend.
-
-## Configuración
-
-La estructura y configuración definitiva del backend se establecerán durante la siguiente etapa del proyecto.
-
-La estructura prevista es:
+El backend está desarrollado con PHP y el framework Laravel, y expone una API REST que consume el frontend.
 
 ```text
 backend/
 │
-├── public/
-│   └── index.php
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── EventController.php
+│   │   └── RegistrationController.php
+│   └── Models/
+│       ├── Event.php
+│       └── Registration.php
 │
-├── src/
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   └── config/
-│
-└── ...
+├── database/migrations/
+├── routes/api.php
+└── tests/Feature/
 ```
 
-## Ejecución
+## Instalación
 
-Una vez configurado el backend, podrá ejecutarse mediante el servidor integrado de PHP:
+Desde la raíz del proyecto:
 
 ```bash
 cd backend
-php -S localhost:8000
 ```
 
-> La estructura definitiva y los comandos de ejecución se actualizarán una vez finalizada la configuración del backend.
+Instalar las dependencias:
+
+```bash
+composer install
+```
+
+Crear el archivo de configuración:
+
+```bash
+cp .env.example .env
+```
+
+Completar en `.env` los datos de conexión de Supabase y generar la clave de la aplicación:
+
+```bash
+php artisan key:generate
+```
+
+Crear las tablas en la base de datos:
+
+```bash
+php artisan migrate
+```
+
+> La guía detallada para conectar el proyecto con Supabase está en [docs/SUPABASE.md](docs/SUPABASE.md).
+
+## Ejecución
+
+```bash
+php artisan serve
+```
+
+La API queda disponible en `http://localhost:8000/api`.
+
+## Pruebas
+
+```bash
+php artisan test
+```
+
+Las pruebas se ejecutan sobre una base de datos SQLite en memoria, por lo que no modifican los datos de Supabase.
+
+## Endpoints
+
+| Método | Endpoint | Descripción | Responsable |
+|---|---|---|---|
+| `POST` | `/api/events` | Crear un evento | Dhamar Patiño |
+| `GET` | `/api/events` | Listar, buscar y filtrar eventos | Dhamar Patiño |
+| `GET` | `/api/events/{id}` | Consultar el detalle de un evento | Cristina Pihuave |
+| `PUT` / `PATCH` | `/api/events/{id}` | Actualizar un evento | Cristina Pihuave |
+| `DELETE` | `/api/events/{id}` | Eliminar un evento | Cristina Pihuave |
+| `GET` | `/api/events/{id}/registrations` | Listar los participantes inscritos | Cristina Pihuave |
+| `POST` | `/api/events/{id}/registrations` | Registrar participación | Cristina Pihuave |
+| `DELETE` | `/api/events/{id}/registrations/{id}` | Cancelar participación | Cristina Pihuave |
+
+En `docs/postman/` se incluye una colección de Postman con todas las peticiones listas para probar.
 
 # Frontend
 
@@ -109,5 +159,10 @@ Ejecutar el servidor de desarrollo:
 ```bash
 npm run dev
 ```
+
 ## Avance 1: Backend
-Estado: Pendiente
+
+Estado: Completado
+
+- Creación de eventos y consulta con búsqueda y filtros — Dhamar Patiño
+- Detalle, actualización y eliminación de eventos, y registro y cancelación de participación — Cristina Pihuave
