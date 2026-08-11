@@ -32,8 +32,16 @@ class EventController extends Controller
 
         public function index(Request $request)
         {
-            $query = Event::query();
+            
+            $request->validate([
+                'search' => 'nullable|string|max:255',
+                'category' => 'nullable|string|max:100',
+                'date' => 'nullable|date',
+                'faculty' => 'nullable|string|max:100',
+            ]);
 
+            $query = Event::query();
+            
             // Búsqueda general
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -59,7 +67,10 @@ class EventController extends Controller
                 $query->where('faculty', $request->faculty);
             }
 
-            $events = $query->get();
+            $events = $query
+                ->orderBy('date', 'asc')
+                ->orderBy('start_time', 'asc')
+                ->get();
 
             return response()->json([
                 'message' => 'Eventos consultados correctamente.',
