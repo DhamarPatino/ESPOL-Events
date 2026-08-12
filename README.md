@@ -141,7 +141,14 @@ Para probar el resto de los endpoints se incluye una colección de Postman en [d
 
 ### Alternativa sin credenciales
 
-Si se desea revisar la API sin acceso a la base de datos del grupo, el proyecto también funciona sobre SQLite, que no requiere servidor. En el paso 4, en lugar de los datos de Supabase, se reemplazan todas las líneas que empiezan con `DB_` por estas dos:
+Si se desea revisar la API sin acceso a la base de datos del grupo, el proyecto también funciona sobre SQLite, se hace lo siguiente:
+Crear el archivo de configuración a partir del ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+**4.** Abrir el archivo `.env` y completar estos tres valores con los datos proporcionados:
 
 ```ini
 DB_CONNECTION=sqlite
@@ -158,9 +165,7 @@ type nul > database\database.sqlite
 php artisan migrate
 ```
 
-En este caso la base inicia vacía, por lo que primero debe crearse un evento con
-`POST /api/events` antes de probar los demás endpoints. Requiere la extensión `pdo_sqlite`. En
-Linux o macOS, el archivo se crea con `touch database/database.sqlite`.
+En este caso la base inicia vacía, por lo que primero debe crearse un evento con `POST /api/events` antes de probar los demás endpoints. Requiere la extensión `pdo_sqlite`. En Linux o macOS, el archivo se crea con `touch database/database.sqlite`.
 
 ## Pruebas
 
