@@ -8,6 +8,7 @@ backend/vendor/
 # Environment variables
 .env
 .env.*
+!.env.example
 
 # IDE
 .vscode/

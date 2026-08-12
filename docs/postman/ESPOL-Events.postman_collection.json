@@ -1,0 +1,163 @@
+{
+  "info": {
+    "name": "ESPOL Events - API",
+    "description": "Coleccion de pruebas de la API REST de ESPOL Events (Avance 1 - Backend).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api" },
+    { "key": "event_id", "value": "1" },
+    { "key": "registration_id", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Dhamar Patino",
+      "item": [
+        {
+          "name": "Crear evento (POST /events)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Feria de Ciencias ESPOL\",\n  \"description\": \"Exposicion de proyectos estudiantiles.\",\n  \"category\": \"Academico\",\n  \"modality\": \"Presencial\",\n  \"faculty\": \"FIEC\",\n  \"date\": \"2026-09-15\",\n  \"start_time\": \"10:00\",\n  \"location\": \"Auditorio FIEC\",\n  \"max_participants\": 50\n}"
+            },
+            "url": { "raw": "{{base_url}}/events", "host": ["{{base_url}}"], "path": ["events"] }
+          }
+        },
+        {
+          "name": "Listar eventos (GET /events)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/events", "host": ["{{base_url}}"], "path": ["events"] }
+          }
+        },
+        {
+          "name": "Buscar eventos (GET /events?search=)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/events?search=ciencias",
+              "host": ["{{base_url}}"],
+              "path": ["events"],
+              "query": [{ "key": "search", "value": "ciencias" }]
+            }
+          }
+        },
+        {
+          "name": "Filtrar eventos (GET /events?category&date&faculty)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/events?category=Academico&faculty=FIEC&date=2026-09-15",
+              "host": ["{{base_url}}"],
+              "path": ["events"],
+              "query": [
+                { "key": "category", "value": "Academico" },
+                { "key": "faculty", "value": "FIEC" },
+                { "key": "date", "value": "2026-09-15" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cristina Pihuave",
+      "item": [
+        {
+          "name": "Detalle del evento (GET /events/{id})",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Actualizar evento (PUT /events/{id})",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Feria de Ciencias ESPOL 2026\",\n  \"location\": \"Coliseo ESPOL\",\n  \"max_participants\": 80\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Registrar participacion (POST /events/{id}/registrations)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cristina Pihuave\",\n  \"email\": \"cristina@espol.edu.ec\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/registrations",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "registrations"]
+            }
+          }
+        },
+        {
+          "name": "Listar participantes (GET /events/{id}/registrations)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/registrations",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "registrations"]
+            }
+          }
+        },
+        {
+          "name": "Cancelar participacion (DELETE /events/{id}/registrations/{id})",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/registrations/{{registration_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}", "registrations", "{{registration_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Eliminar evento (DELETE /events/{id})",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["events", "{{event_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
