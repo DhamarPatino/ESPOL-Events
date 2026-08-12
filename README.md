@@ -85,9 +85,11 @@ Si alguna falta, se activa quitando el `;` de la línea correspondiente en el ar
 
 ## Puesta en marcha
 
-La base de datos del proyecto es **PostgreSQL alojada en Supabase**. Para ejecutar el backend se
-necesitan las credenciales de conexión, que se solicitan a los integrantes del grupo y **no se
-incluyen en el repositorio**.
+La base de datos del proyecto es **PostgreSQL alojada en Supabase**. Para ejecutar el backend se necesitan las credenciales de conexión, que se solicitan a los integrantes del grupo y **no se incluyen en el repositorio**. El grupo las proporcionará al profesor mediante aula virtual.
+
+### Configuración inicial (solo la primera vez)
+
+Estos pasos se realizan **una sola vez**, al clonar el repositorio por primera vez. El archivo `.env` no está versionado (Git lo ignora), pero será proporcionado por un miembro del grupo por aula virtual o por privado.
 
 **1.** Clonar el repositorio y entrar a la carpeta del backend:
 
@@ -105,60 +107,41 @@ cd ESPOL-Events/backend
 composer install
 ```
 
-**3.** Crear el archivo de configuración a partir del ejemplo:
+**3.** Abrir el archivo `.env` y verificar todos los datos estén completos.
 
-```bash
-cp .env.example .env
-```
-
-**4.** Abrir el archivo `.env` y completar estos tres valores con los datos proporcionados:
-
-```ini
-DB_HOST=
-DB_USERNAME=
-DB_PASSWORD=
-```
-
-Las demás variables (`DB_CONNECTION`, `DB_PORT`, `DB_DATABASE` y `DB_SSLMODE`) ya vienen con el
-valor correcto y no se modifican.
-
-**5.** Generar la clave de la aplicación:
-
-```bash
-php artisan key:generate
-```
-
-**6.** Verificar la conexión:
+**4.** Verificar la conexión:
 
 ```bash
 php artisan db:show
 ```
 
-Debe mostrar el motor PostgreSQL y el servidor de Supabase. Las tablas ya están creadas, por lo
-que no es necesario ejecutar `php artisan migrate`.
+Debe mostrar el motor PostgreSQL y el servidor de Supabase. Las tablas ya están creadas, por lo que no es necesario ejecutar `php artisan migrate`.
 
-**7.** Levantar el servidor:
+
+### Uso diario
+
+Una vez hecha la configuración inicial, para levantar el backend nuevamente basta con entrar a la carpeta y arrancar el servidor:
+
+```bash
+cd ESPOL-Events/backend
+```
 
 ```bash
 php artisan serve
 ```
 
-La API queda disponible en `http://localhost:8000/api`. Una primera comprobación rápida es abrir
-`http://localhost:8000/api/events` en el navegador, que devuelve el listado de eventos en JSON.
+Solo necesitas volver a ejecutar `composer install` si cambian las dependencias (por ejemplo, tras un `git pull` que modifique `composer.json`).
 
-Para probar el resto de los endpoints se incluye una colección de Postman en
-[docs/postman/](docs/postman/ESPOL-Events.postman_collection.json), con todas las peticiones
-listas y organizadas por integrante. Los endpoints de escritura (`POST`, `PUT`, `DELETE`) no
-pueden probarse desde el navegador, ya que este solo realiza peticiones `GET`.
+Una primera comprobación rápida es abrir `http://localhost:8000/api/events` en el navegador, que devuelve el listado de eventos en JSON.
+
+Para probar el resto de los endpoints se incluye una colección de Postman en [docs/postman/](docs/postman/ESPOL-Events.postman_collection.json), con todas las peticiones listas y organizadas por integrante. Los endpoints de escritura (`POST`, `PUT`, `DELETE`) no pueden probarse desde el navegador, ya que este solo realiza peticiones `GET`.
 
 > Los detalles de la configuración de Supabase, incluida la resolución de problemas frecuentes de
 > conexión, están en [docs/SUPABASE.md](docs/SUPABASE.md).
 
 ### Alternativa sin credenciales
 
-Si se desea revisar la API sin acceso a la base de datos del grupo, el proyecto también funciona
-sobre SQLite, que no requiere servidor. En el paso 4, en lugar de los datos de Supabase, se
-reemplazan todas las líneas que empiezan con `DB_` por estas dos:
+Si se desea revisar la API sin acceso a la base de datos del grupo, el proyecto también funciona sobre SQLite, que no requiere servidor. En el paso 4, en lugar de los datos de Supabase, se reemplazan todas las líneas que empiezan con `DB_` por estas dos:
 
 ```ini
 DB_CONNECTION=sqlite
@@ -204,7 +187,7 @@ En `docs/postman/` se incluye una colección de Postman con todas las peticiones
 
 # Frontend
 
-El frontend está desarrollado utilizando React y Vite.
+El frontend será desarrollado utilizando React y Vite, está aún pendiente pero en teoría funcionará como se especifacará a continuación.
 
 ## Instalación
 
