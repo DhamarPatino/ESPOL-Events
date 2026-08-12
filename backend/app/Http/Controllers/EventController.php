@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
+    // Creacion de eventos -- Dhamar Patino
+
+    // POST /api/events
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -31,6 +34,9 @@ class EventController extends Controller
     }
 
 
+        // Consulta, busqueda y filtrado de eventos -- Dhamar Patino
+
+        // GET /api/events
         public function index(Request $request)
         {
             
@@ -47,7 +53,7 @@ class EventController extends Controller
             if ($request->filled('search')) {
                 $search = $request->search;
 
-                // En PostgreSQL (Supabase) "like" distingue mayusculas, por eso se usa "ilike"
+                // Ajuste para PostgreSQL: "like" distingue mayusculas, "ilike" no -- Cristina Pihuave
                 $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
                 $query->where(function ($q) use ($search, $like) {

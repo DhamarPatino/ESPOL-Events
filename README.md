@@ -69,47 +69,115 @@ backend/
 └── tests/Feature/
 ```
 
-## Instalación
+## Requisitos
 
-Desde la raíz del proyecto:
+- PHP 8.2 o superior
+- Composer
+- Extensiones de PHP: `pdo_pgsql`, `pgsql`, `zip`, `mbstring`, `openssl`, `curl`, `intl`
+
+Para verificar qué extensiones están activas:
 
 ```bash
-cd backend
+php -m
 ```
 
-Instalar las dependencias:
+Si alguna falta, se activa quitando el `;` de la línea correspondiente en el archivo `php.ini`.
+
+## Puesta en marcha
+
+La base de datos del proyecto es **PostgreSQL alojada en Supabase**. Para ejecutar el backend se
+necesitan las credenciales de conexión, que se solicitan a los integrantes del grupo y **no se
+incluyen en el repositorio**.
+
+**1.** Clonar el repositorio y entrar a la carpeta del backend:
+
+```bash
+git clone https://github.com/DhamarPatino/ESPOL-Events.git
+```
+
+```bash
+cd ESPOL-Events/backend
+```
+
+**2.** Instalar las dependencias:
 
 ```bash
 composer install
 ```
 
-Crear el archivo de configuración:
+**3.** Crear el archivo de configuración a partir del ejemplo:
 
 ```bash
 cp .env.example .env
 ```
 
-Completar en `.env` los datos de conexión de Supabase y generar la clave de la aplicación:
+**4.** Abrir el archivo `.env` y completar estos tres valores con los datos proporcionados:
+
+```ini
+DB_HOST=
+DB_USERNAME=
+DB_PASSWORD=
+```
+
+Las demás variables (`DB_CONNECTION`, `DB_PORT`, `DB_DATABASE` y `DB_SSLMODE`) ya vienen con el
+valor correcto y no se modifican.
+
+**5.** Generar la clave de la aplicación:
 
 ```bash
 php artisan key:generate
 ```
 
-Crear las tablas en la base de datos:
+**6.** Verificar la conexión:
 
 ```bash
-php artisan migrate
+php artisan db:show
 ```
 
-> La guía detallada para conectar el proyecto con Supabase está en [docs/SUPABASE.md](docs/SUPABASE.md).
+Debe mostrar el motor PostgreSQL y el servidor de Supabase. Las tablas ya están creadas, por lo
+que no es necesario ejecutar `php artisan migrate`.
 
-## Ejecución
+**7.** Levantar el servidor:
 
 ```bash
 php artisan serve
 ```
 
-La API queda disponible en `http://localhost:8000/api`.
+La API queda disponible en `http://localhost:8000/api`. Una primera comprobación rápida es abrir
+`http://localhost:8000/api/events` en el navegador, que devuelve el listado de eventos en JSON.
+
+Para probar el resto de los endpoints se incluye una colección de Postman en
+[docs/postman/](docs/postman/ESPOL-Events.postman_collection.json), con todas las peticiones
+listas y organizadas por integrante. Los endpoints de escritura (`POST`, `PUT`, `DELETE`) no
+pueden probarse desde el navegador, ya que este solo realiza peticiones `GET`.
+
+> Los detalles de la configuración de Supabase, incluida la resolución de problemas frecuentes de
+> conexión, están en [docs/SUPABASE.md](docs/SUPABASE.md).
+
+### Alternativa sin credenciales
+
+Si se desea revisar la API sin acceso a la base de datos del grupo, el proyecto también funciona
+sobre SQLite, que no requiere servidor. En el paso 4, en lugar de los datos de Supabase, se
+reemplazan todas las líneas que empiezan con `DB_` por estas dos:
+
+```ini
+DB_CONNECTION=sqlite
+DB_DATABASE=database/database.sqlite
+```
+
+Luego se crea el archivo de la base y se ejecutan las migraciones:
+
+```bash
+type nul > database\database.sqlite
+```
+
+```bash
+php artisan migrate
+```
+
+En este caso la base inicia vacía, por lo que primero debe crearse un evento con
+`POST /api/events` antes de probar los demás endpoints. Requiere la extensión `pdo_sqlite`. En
+Linux o macOS, el archivo se crea con `touch database/database.sqlite`.
 
 ## Pruebas
 

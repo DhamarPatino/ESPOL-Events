@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\RegistrationController;
 
+// Creacion, consulta, busqueda y filtrado de eventos -- Dhamar Patino
 Route::post('/events', [EventController::class, 'store']);
 Route::get('/events', [EventController::class, 'index']);
 
