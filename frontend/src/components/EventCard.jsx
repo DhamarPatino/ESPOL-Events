@@ -1,12 +1,30 @@
+import React, { useState } from 'react';
 import ImagePlaceholder from './ImagePlaceholder';
 
 export default function EventCard({ event, onSelect }) {
-  // Mapeo de campos de la base de datos de Laravel / PostgreSQL
+    const [imgError, setImgError] = useState(false);
+
+    // Mapeo de campos de la base de datos de Laravel / PostgreSQL
     const maxSeats = event.max_participants || 100;
-    // Si tu backend no envía los cupos ocupados aún, asumimos un valor por defecto para la barra
     const availableSeats = event.available_spots ?? maxSeats;
     const takenSeats = maxSeats - availableSeats;
     const pct = Math.round((takenSeats / maxSeats) * 100);
+
+    // Formateador de fecha (2026-08-25 -> 25 Aug 2026) y rango de horas (09:00 – 11:30)
+    const formatDateTime = (dateStr, startTime, endTime) => {
+        if (!dateStr) return '';
+
+        // Evita desfases de zona horaria dividiendo la fecha manualmente
+        const [year, month, day] = dateStr.split('-');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const formattedDate = `${parseInt(day, 10)} ${months[parseInt(month, 10) - 1]} ${year}`;
+
+        const cleanStart = startTime ? startTime.slice(0, 5) : '';
+        const cleanEnd = endTime ? endTime.slice(0, 5) : '';
+        const timeRange = cleanEnd ? `${cleanStart} – ${cleanEnd}` : cleanStart;
+
+        return `${formattedDate} · ${timeRange}`;
+    };
 
     return (
         <div
@@ -22,7 +40,19 @@ export default function EventCard({ event, onSelect }) {
         onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)')}
         onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
         >
-        <ImagePlaceholder height={160} label="Event Image" style={{ borderRadius: 0 }} />
+        {/* RENDERIZADO DE IMAGEN O PLACEHOLDER */}
+        {event.image && !imgError ? (
+            <div style={{ width: '100%', height: 160, overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
+            <img
+                src={event.image}
+                alt={event.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={() => setImgError(true)}
+            />
+            </div>
+        ) : (
+            <ImagePlaceholder height={160} label="Event Image" style={{ borderRadius: 0 }} />
+        )}
 
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
             {/* Tags de Facultad y Categoría */}
@@ -36,9 +66,9 @@ export default function EventCard({ event, onSelect }) {
             {event.title}
             </h3>
 
-            {/* Fecha y Hora */}
+            {/* Fecha y Hora Formateadas */}
             <div style={{ fontSize: 12, color: '#7a7a7a', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <CalIcon /> {event.date} · {event.start_time}
+            <CalIcon /> {formatDateTime(event.date, event.start_time, event.end_time)}
             </div>
 
             {/* Ubicación */}
@@ -96,7 +126,7 @@ export default function EventCard({ event, onSelect }) {
         </div>
         </div>
     );
-    }
+}
 
 function Tag({ children }) {
     return (

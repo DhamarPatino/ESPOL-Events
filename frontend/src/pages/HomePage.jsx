@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Header from '../components/Header';
 import EventCard from '../components/EventCard';
 import { eventService } from '../services/eventService'; // O tu servicio de eventos
 
@@ -7,7 +6,7 @@ import { eventService } from '../services/eventService'; // O tu servicio de eve
 const FACULTIES = ['Todas', 'FIEC', 'FIMCP', 'FCSH', 'FICT', 'FCNM', 'FADCOM'];
 const CATEGORIES = ['Todas', 'Conferencia', 'Taller', 'Seminario', 'Hackathon', 'Feria'];
 
-export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
+export default function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -38,7 +37,7 @@ export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
         setLoading(false);
         }
     };
-
+    
     useEffect(() => {
         const timer = setTimeout(() => {
         fetchEvents();
@@ -84,7 +83,6 @@ export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
 
     return (
         <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-        <Header currentPage={currentPage} setCurrentPage={setCurrentPage} role={role} />
 
         {/* Hero / Search bar */}
         <div style={{ background: '#2a2a2a', padding: '48px 40px 40px' }}>

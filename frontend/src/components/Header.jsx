@@ -1,5 +1,43 @@
-export default function Header({ currentPage, setCurrentPage, role = 'user', isLoggedIn = false }) {
-    return (
+import React, { useState } from 'react';
+
+export default function Header({
+    currentPage,
+    setCurrentPage,
+    role = 'public', // 'public' | 'user' | 'organizer'
+    isLoggedIn = false,
+    user = null, // Datos reales del backend / BD: { name, initials, email, ... }
+    onLogout,
+    onOpenLogin,
+    onOpenRegister,
+    }) {
+    const [showUserMenu, setShowUserMenu] = useState(false);
+
+    // Helper para obtener las iniciales dinámicamente si no vienen explícitas
+    const getInitials = (name) => {
+        if (!name) return '?';
+        const parts = name.trim().split(' ');
+        if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    };
+
+    const userName = user?.name || user?.fullName || 'Usuario';
+    const userInitials = user?.initials || getInitials(userName);
+
+    const handleLoginClick = () => {
+        if (onOpenLogin) onOpenLogin();
+        else setCurrentPage('login');
+    };
+
+    const handleRegisterClick = () => {
+        if (onOpenRegister) onOpenRegister();
+        else setCurrentPage('register');
+    };
+
+    const handleLogoutClick = () => {
+        setShowUserMenu(false);
+        if (onLogout) onLogout();
+        else setCurrentPage('home');
+    };return (
         <header
         style={{
             width: '100%',
@@ -67,6 +105,7 @@ export default function Header({ currentPage, setCurrentPage, role = 'user', isL
                 Facultades
             </button>
 
+    {/* Rutas de Usuario (Estudiante/Asistente) */}
             {isLoggedIn && role === 'user' && (
                 <button
                 onClick={() => setCurrentPage('my-registrations')}
@@ -76,6 +115,7 @@ export default function Header({ currentPage, setCurrentPage, role = 'user', isL
                 </button>
             )}
 
+            {/* Rutas de Organizador */}
             {isLoggedIn && role === 'organizer' && (
                 <>
                 <button
@@ -103,12 +143,12 @@ export default function Header({ currentPage, setCurrentPage, role = 'user', isL
             )}
             </nav>
 
-            {/* ACCIONES DE USUARIO / LOGIN */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {!isLoggedIn ? (
+    {/* ÁREA DERECHA: AUTENTICACIÓN / DATOS DINÁMICOS DEL USUARIO */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+            {!isLoggedIn || role === 'public' ? (
                 <>
                 <button
-                    onClick={() => alert('Abrir modal de Login')}
+                    onClick={handleLoginClick}
                     style={{
                     background: 'none',
                     border: '1px solid #d4d4d4',
@@ -123,7 +163,7 @@ export default function Header({ currentPage, setCurrentPage, role = 'user', isL
                     Iniciar Sesión
                 </button>
                 <button
-                    onClick={() => alert('Abrir modal de Login')}
+                    onClick={handleRegisterClick}
                     style={{
                     background: 'none',
                     border: '1px solid #d4d4d4',
@@ -139,24 +179,74 @@ export default function Header({ currentPage, setCurrentPage, role = 'user', isL
                 </button>
                 </>
             ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                /* MENÚ DEL USUARIO/ORGANIZADOR AUTENTICADO */
+            <div style={{ position: 'relative' }}>
                 <div
+                    onClick={() => setShowUserMenu(!showUserMenu)}
                     style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    background: '#e0e0e0',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#444',
+                    gap: 10,
+                    cursor: 'pointer',
+                    userSelect: 'none',
                     }}
                 >
-                    DP
+                    {/* Iniciales dinámicas */}
+                    <div
+                    style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        background: role === 'organizer' ? '#1e3a8a' : '#2a2a2a', // Color distinto si es organizador
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 12,
+                        fontWeight: 600,
+                    }}
+                    >
+                    {userInitials}
+                    </div>
+                    {/* Nombre dinámico traído del backend / BD */}
+                    <span style={{ fontSize: 12, fontWeight: 500, color: '#333' }}>
+                    {userName}
+                    </span>
                 </div>
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#333' }}>Dhamar Patiño</span>
+
+                {/* MENÚ DESPLEGABLE */}
+                {showUserMenu && (
+                    <div
+                    style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: 'calc(100% + 8px)',
+                        background: '#fff',
+                        border: '1px solid #e5e5e5',
+                        borderRadius: 6,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        width: 160,
+                        zIndex: 200,
+                        overflow: 'hidden',
+                    }}
+                    >
+                    <button
+                        onClick={() => {
+                        setCurrentPage('profile');
+                        setShowUserMenu(false);
+                        }}
+                        style={dropdownItemStyle}
+                    >
+                        Mi Perfil
+                    </button>
+                    <button
+                        onClick={handleLogoutClick}
+                        style={{ ...dropdownItemStyle, color: '#dc2626', borderTop: '1px solid #f0f0f0' }}
+                    >
+                        Cerrar Sesión
+                    </button>
+                    </div>
+                )}
                 </div>
             )}
             </div>
@@ -178,3 +268,15 @@ function navBtnStyle(active) {
         fontFamily: 'inherit',
     };
 }
+
+const dropdownItemStyle = {
+    width: '100%',
+    padding: '10px 14px',
+    textAlign: 'left',
+    background: 'none',
+    border: 'none',
+    fontSize: 13,
+    color: '#333',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+};
