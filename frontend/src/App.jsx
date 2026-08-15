@@ -1,122 +1,102 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect } from 'react';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Importación de tu Header
+import Header from './components/Header';
+
+// Importación de tus páginas
+import HomePage from './pages/HomePage';
+import FacultiesPage from './pages/FacultiesPage';
+import MyRegistrationsPage from './pages/MyRegistrationsPage';
+import OrganizerDashboardPage from './pages/OrganizerDashboardPage';
+import CreateEventPage from './pages/CreateEventPage';
+import ProfilePage from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+
+export default function App() {
+  const [currentPage, setCurrentPage] = useState('home');
+
+  // Estado de autenticación y rol
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [role, setRole] = useState('public');
+  const [user, setUser] = useState(null);
+
+  // 1. PERSISTENCIA AL RECARGAR (Lee token y datos de localStorage)
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (savedUser && token) {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setRole(parsedUser.role || 'user');
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  // 2. MANEJO DE LOGIN EXITOSO
+  const handleLoginSuccess = (userData, userRole) => {
+    // Si userRole no se envía explícitamente, se extrae de userData.role
+    const detectedRole = userRole || userData?.role || 'user';
+
+    setUser(userData);
+    setRole(detectedRole);
+    setIsLoggedIn(true);
+    setCurrentPage('home');
+  };
+
+  // 3. MANEJO DE CERRAR SESIÓN
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    setRole('public');
+    setIsLoggedIn(false);
+    setCurrentPage('home');
+  };
+
+  // Switch de renderizado dinámico de páginas
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return <HomePage setCurrentPage={setCurrentPage} user={user} role={role} />;
+      case 'faculties':
+        return <FacultiesPage setCurrentPage={setCurrentPage} />;
+      case 'my-registrations':
+        return <MyRegistrationsPage user={user} />;
+      case 'organizer-dashboard':
+        return <OrganizerDashboardPage user={user} setCurrentPage={setCurrentPage} />;
+      case 'create-event':
+        return <CreateEventPage user={user} setCurrentPage={setCurrentPage} />;
+      case 'profile':
+        return <ProfilePage user={user} role={role} />;
+      case 'login':
+        return <LoginPage onLoginSuccess={handleLoginSuccess} setCurrentPage={setCurrentPage} />;
+      case 'register':
+        return <RegisterPage setCurrentPage={setCurrentPage} />;
+      default:
+        return <HomePage setCurrentPage={setCurrentPage} user={user} role={role} />;
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* HEADER GLOBAL */}
+      <Header
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        role={role}
+        isLoggedIn={isLoggedIn}
+        user={user}
+        onLogout={handleLogout}
+        onOpenLogin={() => setCurrentPage('login')}
+        onOpenRegister={() => setCurrentPage('register')}
+      />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* CONTENIDO PRINCIPAL */}
+      <main style={{ flex: 1 }}>
+        {renderPage()}
+      </main>
+    </div>
+  );
 }
-
-export default App

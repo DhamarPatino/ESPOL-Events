@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 class EventController extends Controller
 {
-    // Creacion de eventos -- Dhamar Patino
+    // Creación de eventos -- Dhamar Patiño
 
     // POST /api/events
     public function store(Request $request)
@@ -20,10 +20,19 @@ class EventController extends Controller
             'modality' => 'required|string|max:50',
             'faculty' => 'required|string|max:100',
             'date' => 'required|date',
-            'start_time' => 'required|date_format:H:i',
+            // Acepta tanto "10:00" como "10:00:00"
+            'start_time' => 'required|date_format:H:i,H:i:s',
+            'end_time' => 'nullable|date_format:H:i,H:i:s',
+            'image' => 'nullable', // 👈 1. Se remueve "|string" para aceptar también archivos
             'location' => 'required|string|max:255',
             'max_participants' => 'required|integer|min:1',
         ]);
+
+        // 👈 2. Si se subió un archivo físico, se almacena y se convierte a URL pública
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('events', 'public');
+            $validated['image'] = asset('storage/' . $path);
+        }
 
         $event = Event::create($validated);
 
@@ -34,64 +43,63 @@ class EventController extends Controller
     }
 
 
-        // Consulta, busqueda y filtrado de eventos -- Dhamar Patino
+    // Consulta, búsqueda y filtrado de eventos -- Dhamar Patiño
 
-        // GET /api/events
-        public function index(Request $request)
-        {
-            
-            $request->validate([
-                'search' => 'nullable|string|max:255',
-                'category' => 'nullable|string|max:100',
-                'date' => 'nullable|date',
-                'faculty' => 'nullable|string|max:100',
-            ]);
+    // GET /api/events
+    public function index(Request $request)
+    {
+        $request->validate([
+            'search' => 'nullable|string|max:255',
+            'category' => 'nullable|string|max:100',
+            'date' => 'nullable|date',
+            'faculty' => 'nullable|string|max:100',
+        ]);
 
-            $query = Event::query();
-            
-            // Búsqueda general
-            if ($request->filled('search')) {
-                $search = $request->search;
+        $query = Event::query();
 
-                // Ajuste para PostgreSQL: "like" distingue mayusculas, "ilike" no -- Cristina Pihuave
-                $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+        // Búsqueda general
+        if ($request->filled('search')) {
+            $search = $request->search;
 
-                $query->where(function ($q) use ($search, $like) {
-                    $q->where('title', $like, "%{$search}%")
+            // Ajuste para PostgreSQL: "like" distingue mayúsculas, "ilike" no -- Cristina Pihuave
+            $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+            $query->where(function ($q) use ($search, $like) {
+                $q->where('title', $like, "%{$search}%")
                     ->orWhere('description', $like, "%{$search}%");
-                });
-            }
-
-            // Filtro por categoría
-            if ($request->filled('category')) {
-                $query->where('category', $request->category);
-            }
-
-            // Filtro por fecha
-            if ($request->filled('date')) {
-                $query->whereDate('date', $request->date);
-            }
-
-            // Filtro por facultad
-            if ($request->filled('faculty')) {
-                $query->where('faculty', $request->faculty);
-            }
-
-            $events = $query
-                ->orderBy('date', 'asc')
-                ->orderBy('start_time', 'asc')
-                ->get();
-
-            return response()->json([
-                'message' => 'Eventos consultados correctamente.',
-                'events' => $events
-            ]);
+            });
         }
 
-    // Consulta del detalle, actualizacion y eliminacion de eventos -- Cristina Pihuave
+        // Filtro por categoría
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+
+        // Filtro por fecha
+        if ($request->filled('date')) {
+            $query->whereDate('date', $request->date);
+        }
+
+        // Filtro por facultad
+        if ($request->filled('faculty')) {
+            $query->where('faculty', $request->faculty);
+        }
+
+        $events = $query
+            ->orderBy('date', 'asc')
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        return response()->json([
+            'message' => 'Eventos consultados correctamente.',
+            'events' => $events
+        ]);
+    }
+
+
+    // Consulta del detalle, actualización y eliminación de eventos -- Cristina Pihuave
 
     // GET /api/events/{id}
-    // Devuelve la informacion completa del evento junto con sus cupos
     public function show($id)
     {
         $event = Event::find($id);
@@ -111,7 +119,6 @@ class EventController extends Controller
     }
 
     // PUT / PATCH /api/events/{id}
-    // Actualiza uno o varios campos del evento
     public function update(Request $request, $id)
     {
         $event = Event::find($id);
@@ -130,9 +137,17 @@ class EventController extends Controller
             'faculty' => 'sometimes|required|string|max:100',
             'date' => 'sometimes|required|date',
             'start_time' => 'sometimes|required|date_format:H:i,H:i:s',
+            'end_time' => 'nullable|date_format:H:i,H:i:s',
+            'image' => 'nullable', // 👈 3. Se remueve "|string" también aquí
             'location' => 'sometimes|required|string|max:255',
             'max_participants' => 'sometimes|required|integer|min:1',
         ]);
+
+        // 👈 4. Procesar nueva imagen si se subió como archivo al actualizar
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('events', 'public');
+            $validated['image'] = asset('storage/' . $path);
+        }
 
         if (empty($validated)) {
             return response()->json([
@@ -161,7 +176,6 @@ class EventController extends Controller
     }
 
     // DELETE /api/events/{id}
-    // Elimina el evento y sus inscripciones asociadas
     public function destroy($id)
     {
         $event = Event::find($id);
@@ -178,5 +192,4 @@ class EventController extends Controller
             'message' => 'Evento eliminado correctamente.'
         ]);
     }
-
 }
