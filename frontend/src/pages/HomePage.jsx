@@ -17,6 +17,7 @@ export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
     const [faculty, setFaculty] = useState('Todas');
     const [category, setCategory] = useState('Todas');
     const [date, setDate] = useState('');
+    const [sortBy, setSortBy] = useState('recent');
 
     // Carga de datos desde la API / Supabase / Backend
     const fetchEvents = async () => {
@@ -54,6 +55,31 @@ export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
         const matchCategory = category === 'Todas' || e.category === category;
         const matchDate = !date || e.date === date;
         return matchSearch && matchFaculty && matchCategory && matchDate;
+    });
+
+    // 2. Ordenamiento de eventos filtrados
+    const sortedEvents = [...filtered].sort((a, b) => {
+        if (sortBy === 'recent') {
+            // Ordena de más nuevo a más antiguo por fecha/ID
+            return new Date(b.date || 0) - new Date(a.date || 0);
+            }
+        
+        if (sortBy === 'popular') {
+            // Ordena por mayor porcentaje de ocupación o cupos tomados
+            const totalA = a.max_participants || 100;
+            const takenA = totalA - (a.available_spots ?? totalA);
+            
+            const totalB = b.max_participants || 100;
+            const takenB = totalB - (b.available_spots ?? totalB);
+            
+            return takenB - takenA; // El que tiene más inscritos va primero
+        }
+        
+        if (sortBy === 'upcoming') {
+            // Ordena los eventos más próximos a la fecha actual
+            return new Date(a.date || 0) - new Date(b.date || 0);
+        }
+        return 0;
     });
 
     return (
@@ -232,14 +258,31 @@ export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
                 {search || faculty !== 'Todas' || category !== 'Todas' || date ? 'Resultados' : 'Todos los Eventos'}
                 </h2>
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#9a9a9a' }}>
-                {filtered.length} evento{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+                    {sortedEvents.length} evento{sortedEvents.length !== 1 ? 's' : ''} encontrado{sortedEvents.length !== 1 ? 's' : ''}
                 </p>
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
-                <SortBtn active>Más recientes</SortBtn>
-                <SortBtn>Más populares</SortBtn>
-                <SortBtn>Próximos</SortBtn>
-            </div>
+                <SortBtn 
+                    active={sortBy === 'recent'} 
+                    onClick={() => setSortBy('recent')}
+                >
+                    Más recientes
+                </SortBtn>
+
+                <SortBtn 
+                    active={sortBy === 'popular'} 
+                    onClick={() => setSortBy('popular')}
+                >
+                    Más populares
+                </SortBtn>
+
+                <SortBtn 
+                    active={sortBy === 'upcoming'} 
+                    onClick={() => setSortBy('upcoming')}
+                >
+                    Próximos
+                </SortBtn>
+                </div>
             </div>
 
             {/* Carga y Errores */}
@@ -280,16 +323,13 @@ export function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
                     gap: 20,
                 }}
                 >
-                {filtered.map((event) => (
+                {sortedEvents.map((event) => (
                     <EventCard
-                    key={event.id}
-                    event={event}
-                    onSelect={(selectedEvent) => {
-                        console.log('Evento seleccionado:', selectedEvent);
-                        // Aquí puedes cambiar de vista o abrir modal
-                    }}
+                        key={event.id}
+                        event={event}
+                        onSelect={(selectedEvent) => navigate('event-detail', selectedEvent)}
                     />
-                ))}
+                    ))}
                 </div>
             )
             )}
@@ -331,9 +371,10 @@ function FilterSelect({ label, value, onChange, options }) {
     );
 }
 
-function SortBtn({ children, active }) {
+function SortBtn({ children, active, onClick }) {
     return (
         <button
+        onClick={onClick}
         style={{
             background: active ? '#2a2a2a' : 'none',
             color: active ? '#fff' : '#7a7a7a',
@@ -346,6 +387,7 @@ function SortBtn({ children, active }) {
             cursor: 'pointer',
             fontFamily: 'inherit',
             letterSpacing: '0.02em',
+            transition: 'all 0.15s ease',
         }}
         >
         {children}
