@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Importación de tu Header
 import Header from './components/Header';
 
-// Importación de tus páginas (ajusta las rutas según la estructura de tu proyecto)
+// Importación de tus páginas
 import HomePage from './pages/HomePage';
 import FacultiesPage from './pages/FacultiesPage';
 import MyRegistrationsPage from './pages/MyRegistrationsPage';
@@ -14,24 +14,41 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 
 export default function App() {
-  // Estado para controlar la página actual
   const [currentPage, setCurrentPage] = useState('home');
 
-  // Estado de autenticación y rol proveniente del Backend / BD
-  // role: 'public' | 'user' | 'organizer'
+  // Estado de autenticación y rol
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [role, setRole] = useState('public');
   const [user, setUser] = useState(null);
 
-  // Ejemplo de login simulado (conecta esto con tus peticiones HTTP/Fetch al Backend)
+  // 1. PERSISTENCIA AL RECARGAR (Lee token y datos de localStorage)
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+
+    if (savedUser && token) {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+      setRole(parsedUser.role || 'user');
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  // 2. MANEJO DE LOGIN EXITOSO
   const handleLoginSuccess = (userData, userRole) => {
+    // Si userRole no se envía explícitamente, se extrae de userData.role
+    const detectedRole = userRole || userData?.role || 'user';
+
     setUser(userData);
-    setRole(userRole);
+    setRole(detectedRole);
     setIsLoggedIn(true);
     setCurrentPage('home');
   };
 
+  // 3. MANEJO DE CERRAR SESIÓN
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setUser(null);
     setRole('public');
     setIsLoggedIn(false);
@@ -64,7 +81,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* HEADER GLOBAL: Se renderiza siempre arriba y recibe el estado centralizado */}
+      {/* HEADER GLOBAL */}
       <Header
         currentPage={currentPage}
         setCurrentPage={setCurrentPage}
@@ -76,7 +93,7 @@ export default function App() {
         onOpenRegister={() => setCurrentPage('register')}
       />
 
-      {/* CONTENIDO PRINCIPAL SEGÚN LA PÁGINA SELECCIONADA */}
+      {/* CONTENIDO PRINCIPAL */}
       <main style={{ flex: 1 }}>
         {renderPage()}
       </main>

@@ -23,10 +23,16 @@ class EventController extends Controller
             // Acepta tanto "10:00" como "10:00:00"
             'start_time' => 'required|date_format:H:i,H:i:s',
             'end_time' => 'nullable|date_format:H:i,H:i:s',
-            'image' => 'nullable|string',
+            'image' => 'nullable', // 👈 1. Se remueve "|string" para aceptar también archivos
             'location' => 'required|string|max:255',
             'max_participants' => 'required|integer|min:1',
         ]);
+
+        // 👈 2. Si se subió un archivo físico, se almacena y se convierte a URL pública
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('events', 'public');
+            $validated['image'] = asset('storage/' . $path);
+        }
 
         $event = Event::create($validated);
 
@@ -60,7 +66,7 @@ class EventController extends Controller
 
             $query->where(function ($q) use ($search, $like) {
                 $q->where('title', $like, "%{$search}%")
-                  ->orWhere('description', $like, "%{$search}%");
+                    ->orWhere('description', $like, "%{$search}%");
             });
         }
 
@@ -89,6 +95,7 @@ class EventController extends Controller
             'events' => $events
         ]);
     }
+
 
     // Consulta del detalle, actualización y eliminación de eventos -- Cristina Pihuave
 
@@ -131,10 +138,16 @@ class EventController extends Controller
             'date' => 'sometimes|required|date',
             'start_time' => 'sometimes|required|date_format:H:i,H:i:s',
             'end_time' => 'nullable|date_format:H:i,H:i:s',
-            'image' => 'nullable|string',
+            'image' => 'nullable', // 👈 3. Se remueve "|string" también aquí
             'location' => 'sometimes|required|string|max:255',
             'max_participants' => 'sometimes|required|integer|min:1',
         ]);
+
+        // 👈 4. Procesar nueva imagen si se subió como archivo al actualizar
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('events', 'public');
+            $validated['image'] = asset('storage/' . $path);
+        }
 
         if (empty($validated)) {
             return response()->json([
