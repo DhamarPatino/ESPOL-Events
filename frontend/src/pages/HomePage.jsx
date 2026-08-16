@@ -6,14 +6,15 @@ import { eventService } from '../services/eventService'; // O tu servicio de eve
 const FACULTIES = ['Todas', 'FIEC', 'FIMCP', 'FCSH', 'FICT', 'FCNM', 'FADCOM'];
 const CATEGORIES = ['Todas', 'Conferencia', 'Taller', 'Seminario', 'Hackathon', 'Feria'];
 
-export default function HomePage({ currentPage, setCurrentPage, role = 'organizer' }) {
+export default function HomePage({ currentPage, setCurrentPage, role = 'organizer', facultyFilter }) {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Estados para filtros de búsqueda
     const [search, setSearch] = useState('');
-    const [faculty, setFaculty] = useState('Todas');
+    // La facultad puede venir preseleccionada desde la página de Facultades
+    const [faculty, setFaculty] = useState(facultyFilter || 'Todas');
     const [category, setCategory] = useState('Todas');
     const [date, setDate] = useState('');
     const [sortBy, setSortBy] = useState('recent');
@@ -86,7 +87,7 @@ export default function HomePage({ currentPage, setCurrentPage, role = 'organize
 
         {/* Hero / Search bar */}
         <div style={{ background: '#2a2a2a', padding: '48px 40px 40px' }}>
-            <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+            <div style={{ maxWidth: 1280, margin: '0 auto', textAlign: 'center' }}>
             <div
                 style={{
                 fontSize: 11,
@@ -325,7 +326,8 @@ export default function HomePage({ currentPage, setCurrentPage, role = 'organize
                     <EventCard
                         key={event.id}
                         event={event}
-                        onSelect={(selectedEvent) => navigate('event-detail', selectedEvent)}
+                        // Abre el detalle del evento seleccionado -- Cristina Pihuave
+                        onSelect={(selectedEvent) => setCurrentPage('event-detail', selectedEvent.id)}
                     />
                     ))}
                 </div>

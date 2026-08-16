@@ -1,7 +1,7 @@
 export default function ImagePlaceholder({
     width = '100%',
     height = 180,
-    label = 'Image Placeholder',
+    label = 'Imagen no disponible',
     style,
 }) {
     return (

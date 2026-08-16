@@ -1,23 +1,23 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { eventService } from '../services/eventService';
 
 const FACULTIES_LIST = ['FIEC', 'FIMCP', 'FCSH', 'FICT', 'FCNM', 'FADCOM', 'FIMCBOR'];
 const CATEGORIES_LIST = ['Conferencia', 'Taller', 'Seminario', 'Hackathon', 'Feria', 'Networking'];
 
-export default function CreateEventPage({ navigate, mode = 'create' }) {
+export default function CreateEventPage({ navigate, mode = 'create', eventId = null }) {
     const isEdit = mode === 'edit';
 
     const [form, setForm] = useState({
-        title: isEdit ? 'Innovación Tecnológica en la Industria 4.0' : '',
-        description: isEdit ? 'Expertos de la industria abordan el impacto de la automatización...' : '',
-        faculty: isEdit ? 'FIEC' : FACULTIES_LIST[0],
-        category: isEdit ? 'Conferencia' : CATEGORIES_LIST[0],
-        type: isEdit ? 'Presencial' : 'Presencial',
-        date: isEdit ? '2026-08-15' : '',
-        time: isEdit ? '09:00' : '',
-        endTime: isEdit ? '12:00' : '',
-        location: isEdit ? 'Auditorio Principal' : '',
-        capacity: isEdit ? '120' : '',
+        title: '',
+        description: '',
+        faculty: FACULTIES_LIST[0],
+        category: CATEGORIES_LIST[0],
+        type: 'Presencial',
+        date: '',
+        time: '',
+        endTime: '',
+        location: '',
+        capacity: '',
     });
 
     const [imageFile, setImageFile] = useState(null);
@@ -30,6 +30,39 @@ export default function CreateEventPage({ navigate, mode = 'create' }) {
     const [success, setSuccess] = useState(false); // 👈 Nuevo estado para mensaje de éxito
 
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+    // En modo edición se cargan los datos reales del evento -- Cristina Pihuave
+    useEffect(() => {
+        if (!isEdit || !eventId) return;
+
+        const cargarEvento = async () => {
+            try {
+                const data = await eventService.getEventById(eventId);
+                const ev = data.event;
+
+                setForm({
+                    id: ev.id,
+                    title: ev.title || '',
+                    description: ev.description || '',
+                    faculty: ev.faculty || FACULTIES_LIST[0],
+                    category: ev.category || CATEGORIES_LIST[0],
+                    type: ev.modality || 'Presencial',
+                    date: ev.date || '',
+                    time: ev.start_time ? ev.start_time.slice(0, 5) : '',
+                    endTime: ev.end_time ? ev.end_time.slice(0, 5) : '',
+                    location: ev.location || '',
+                    capacity: ev.max_participants ? String(ev.max_participants) : '',
+                });
+
+                if (ev.image) setImagePreview(ev.image);
+            } catch (err) {
+                console.error('Error al cargar el evento:', err);
+                setError('No se pudo cargar la información del evento.');
+            }
+        };
+
+        cargarEvento();
+    }, [isEdit, eventId]);
 
     // Helper seguro para navegar sin romper la app si no se pasó la función
     const safeNavigate = (page) => {

@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // Almacenamiento de imagenes de eventos en Supabase Storage -- Cristina Pihuave
+    'supabase' => [
+        'url' => env('SUPABASE_URL'),
+        'key' => env('SUPABASE_SERVICE_KEY'),
+        'bucket' => env('SUPABASE_BUCKET', 'events'),
+    ],
+
 ];

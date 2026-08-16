@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Event;
+use App\Services\ImageStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -30,8 +31,7 @@ class EventController extends Controller
 
         // 👈 2. Si se subió un archivo físico, se almacena y se convierte a URL pública
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('events', 'public');
-            $validated['image'] = asset('storage/' . $path);
+            $validated['image'] = ImageStorage::store($request->file('image'));
         }
 
         $event = Event::create($validated);
@@ -145,8 +145,7 @@ class EventController extends Controller
 
         // 👈 4. Procesar nueva imagen si se subió como archivo al actualizar
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('events', 'public');
-            $validated['image'] = asset('storage/' . $path);
+            $validated['image'] = ImageStorage::store($request->file('image'));
         }
 
         if (empty($validated)) {

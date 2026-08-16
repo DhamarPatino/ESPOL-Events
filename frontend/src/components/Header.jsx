@@ -99,8 +99,8 @@ export default function Header({
             </button>
             
             <button
-                onClick={() => setCurrentPage('home')}
-                style={navBtnStyle(false)}
+                onClick={() => setCurrentPage('faculties')}
+                style={navBtnStyle(currentPage === 'faculties')}
             >
                 Facultades
             </button>
