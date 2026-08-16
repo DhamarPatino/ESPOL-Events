@@ -51,7 +51,7 @@ export default function EventCard({ event, onSelect }) {
             />
             </div>
         ) : (
-            <ImagePlaceholder height={160} label="Event Image" style={{ borderRadius: 0 }} />
+            <ImagePlaceholder height={160} label="Imagen del evento" style={{ borderRadius: 0 }} />
         )}
 
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
@@ -121,7 +121,7 @@ export default function EventCard({ event, onSelect }) {
             onMouseEnter={(e) => (e.currentTarget.style.background = '#3d3d3d')}
             onMouseLeave={(e) => (e.currentTarget.style.background = '#2a2a2a')}
             >
-            View Details
+            Ver detalles
             </button>
         </div>
         </div>

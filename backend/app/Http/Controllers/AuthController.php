@@ -8,6 +8,35 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    // Creacion de cuentas -- Cristina Pihuave
+
+    // POST /api/register
+    public function register(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'nullable|in:user,organizer',
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'] ?? 'user',
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Cuenta creada correctamente.',
+            'token' => $token,
+            'user' => $user,
+        ], 201);
+    }
+
+    // Inicio de sesion -- Dhamar Patino
     public function login(Request $request)
     {
         $request->validate([

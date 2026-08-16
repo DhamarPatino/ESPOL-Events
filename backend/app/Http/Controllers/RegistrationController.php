@@ -10,6 +10,26 @@ use Illuminate\Http\Request;
 
 class RegistrationController extends Controller
 {
+    // GET /api/registrations?email=
+    // Lista las inscripciones de un participante, con los datos de cada evento
+    public function byParticipant(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $registrations = Registration::with('event')
+            ->where('email', $validated['email'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'message' => 'Inscripciones consultadas correctamente.',
+            'total' => $registrations->count(),
+            'registrations' => $registrations,
+        ]);
+    }
+
     // GET /api/events/{event}/registrations
     // Lista los participantes inscritos en un evento
     public function index($eventId)

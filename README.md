@@ -73,7 +73,7 @@ backend/
 
 - PHP 8.2 o superior
 - Composer
-- Extensiones de PHP: `pdo_pgsql`, `pgsql`, `zip`, `mbstring`, `openssl`, `curl`, `intl`
+- Extensiones de PHP: `pdo_pgsql`, `pgsql`, `zip`, `mbstring`, `openssl`, `curl`, `intl`, `gd`
 
 Para verificar qué extensiones están activas:
 
@@ -117,6 +117,13 @@ php artisan db:show
 
 Debe mostrar el motor PostgreSQL y el servidor de Supabase. Las tablas ya están creadas, por lo que no es necesario ejecutar `php artisan migrate`.
 
+**5.** Crear el enlace de almacenamiento público. Sin este paso, las imágenes de los eventos se suben pero no se muestran:
+
+```bash
+php artisan storage:link
+```
+
+> Las imágenes se guardan en la carpeta `storage/` de cada equipo, no en Supabase. Por eso una imagen subida desde otra computadora no se visualiza localmente, aunque el evento sí aparezca.
 
 ### Uso diario
 
@@ -192,7 +199,38 @@ En `docs/postman/` se incluye una colección de Postman con todas las peticiones
 
 # Frontend
 
-El frontend será desarrollado utilizando React y Vite, está aún pendiente pero en teoría funcionará como se especifacará a continuación.
+El frontend está desarrollado con React y Vite. Es una aplicación de una sola página que consume la API REST del backend.
+
+```text
+frontend/src/
+│
+├── components/
+│   ├── EventCard.jsx          Tarjeta de evento del catálogo
+│   ├── Header.jsx             Barra de navegación
+│   └── ImagePlaceholder.jsx
+│
+├── pages/
+│   ├── HomePage.jsx               Catálogo, búsqueda y filtros
+│   ├── EventDetailPage.jsx        Detalle del evento e inscripción
+│   ├── MyRegistrationsPage.jsx    Inscripciones del participante
+│   ├── OrganizerDashboardPage.jsx Panel del organizador
+│   ├── CreateEventPage.jsx        Formulario de creación y edición
+│   ├── FacultiesPage.jsx          Eventos por facultad
+│   ├── LoginPage.jsx
+│   ├── RegisterPage.jsx
+│   └── ProfilePage.jsx
+│
+├── services/
+│   ├── eventService.js        Llamadas a los endpoints de eventos
+│   └── registrationService.js Llamadas a los endpoints de inscripciones
+│
+└── App.jsx                    Navegación y sesión del usuario
+```
+
+## Requisitos
+
+- Node.js 18 o superior
+- El **backend debe estar corriendo** en `http://localhost:8000`, ya que el frontend consume su API
 
 ## Instalación
 
@@ -202,23 +240,35 @@ Desde la raíz del proyecto:
 cd frontend
 ```
 
-Instalar las dependencias:
-
 ```bash
 npm install
 ```
 
 ## Ejecución
 
-Ejecutar el servidor de desarrollo:
-
 ```bash
 npm run dev
 ```
 
-## Avance 1: Backend
+La aplicación queda disponible en `http://localhost:5173`.
 
-Estado: Completado
+> Se necesitan **dos terminales abiertas al mismo tiempo**: una con `php artisan serve` en la carpeta `backend` y otra con `npm run dev` en `frontend`. Si el catálogo muestra el mensaje "No se pudieron cargar los eventos", es porque el backend no está levantado.
 
-- Creación de eventos y consulta con búsqueda y filtros — Dhamar Patiño
+La dirección de la API está definida en los archivos de `src/services/`. Si el backend se levanta en otro puerto, debe actualizarse allí.
+
+## Estado del proyecto
+
+**Avance 1: Backend** — Completado
+
+- Creación de eventos, consulta, búsqueda y filtros — Dhamar Patiño
 - Detalle, actualización y eliminación de eventos, y registro y cancelación de participación — Cristina Pihuave
+
+**Avance 2: Frontend** — Completado
+
+- Catálogo de eventos, búsqueda y filtros, creación de eventos e inicio de sesión — Dhamar Patiño
+- Detalle del evento, inscripción y cancelación, creación de cuenta y panel del organizador — Cristina Pihuave
+
+**Pendiente**
+
+- Página de perfil de usuario — Dhamar Patiño
+- Despliegue de la aplicación — Dhamar Patiño y Cristina Pihuave

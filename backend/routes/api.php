@@ -8,6 +8,12 @@ use App\Http\Controllers\AuthController;
 //login
 Route::post('/login', [AuthController::class, 'login']);
 
+// Creacion de cuentas -- Cristina Pihuave
+Route::post('/register', [AuthController::class, 'register']);
+
+// Inscripciones de un participante -- Cristina Pihuave
+Route::get('/registrations', [RegistrationController::class, 'byParticipant']);
+
 // Creacion, consulta, busqueda y filtrado de eventos -- Dhamar Patino
 Route::post('/events', [EventController::class, 'store']);
 Route::get('/events', [EventController::class, 'index']);

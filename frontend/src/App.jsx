@@ -12,9 +12,19 @@ import CreateEventPage from './pages/CreateEventPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import EventDetailPage from './pages/EventDetailPage';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
+
+  // Dato que se envia a la pagina destino: id del evento o facultad -- Cristina Pihuave
+  const [navParam, setNavParam] = useState(null);
+
+  // Cambia de pagina y pasa el dato asociado -- Cristina Pihuave
+  const navigate = (page, param = null) => {
+    setNavParam(param);
+    setCurrentPage(page);
+  };
 
   // Estado de autenticación y rol
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -59,23 +69,27 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <HomePage setCurrentPage={setCurrentPage} user={user} role={role} />;
+        return <HomePage setCurrentPage={navigate} user={user} role={role} facultyFilter={navParam} />;
       case 'faculties':
-        return <FacultiesPage setCurrentPage={setCurrentPage} />;
+        return <FacultiesPage setCurrentPage={navigate} />;
+      case 'event-detail':
+        return <EventDetailPage eventId={navParam} setCurrentPage={navigate} user={user} />;
       case 'my-registrations':
-        return <MyRegistrationsPage user={user} />;
+        return <MyRegistrationsPage user={user} setCurrentPage={navigate} />;
       case 'organizer-dashboard':
-        return <OrganizerDashboardPage user={user} setCurrentPage={setCurrentPage} />;
+        return <OrganizerDashboardPage user={user} setCurrentPage={navigate} />;
       case 'create-event':
-        return <CreateEventPage user={user} setCurrentPage={setCurrentPage} />;
+        return <CreateEventPage user={user} setCurrentPage={navigate} navigate={navigate} />;
+      case 'edit-event':
+        return <CreateEventPage user={user} setCurrentPage={navigate} navigate={navigate} mode="edit" eventId={navParam} />;
       case 'profile':
-        return <ProfilePage user={user} role={role} />;
+        return <ProfilePage user={user} role={role} onLogout={handleLogout} setCurrentPage={navigate} />;
       case 'login':
-        return <LoginPage onLoginSuccess={handleLoginSuccess} setCurrentPage={setCurrentPage} />;
+        return <LoginPage onLoginSuccess={handleLoginSuccess} setCurrentPage={navigate} navigate={navigate} />;
       case 'register':
-        return <RegisterPage setCurrentPage={setCurrentPage} />;
+        return <RegisterPage onLoginSuccess={handleLoginSuccess} setCurrentPage={navigate} />;
       default:
-        return <HomePage setCurrentPage={setCurrentPage} user={user} role={role} />;
+        return <HomePage setCurrentPage={navigate} user={user} role={role} />;
     }
   };
 
@@ -84,7 +98,7 @@ export default function App() {
       {/* HEADER GLOBAL */}
       <Header
         currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
+        setCurrentPage={navigate}
         role={role}
         isLoggedIn={isLoggedIn}
         user={user}
