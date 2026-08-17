@@ -66,7 +66,7 @@ Colocar el archivo `.env` proporcionado dentro de la carpeta `backend/` y compro
 php artisan db:show
 ```
 
-Debe mostrar el motor PostgreSQL y el servidor de Supabase. Las tablas ya están creadas, por lo que no hace falta ejecutar `php artisan migrate`.
+Debe mostrar el motor PostgreSQL y el servidor de Supabase. Las tablas ya están creadas allí.
 
 Crear el enlace de almacenamiento y levantar el servidor:
 
@@ -106,9 +106,7 @@ La aplicación queda disponible en `http://localhost:5173`.
 
 **Imágenes de los eventos.** Se comprimen automáticamente (se reducen a 1280 px de ancho y se convierten a WebP) y se suben a Supabase Storage, por lo que quedan accesibles desde cualquier equipo. Si las variables `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` del `.env` están vacías, se guardan en la carpeta local `storage/` y solo se ven en el equipo que las subió; para ese caso es necesario el `php artisan storage:link` del paso 2.
 
-**Puertos.** La dirección de la API está definida en los archivos de `frontend/src/services/`. Si el backend se levanta en otro puerto, debe actualizarse ahí.
-
-La configuración detallada de Supabase, incluida la resolución de problemas de conexión, está en [docs/SUPABASE.md](docs/SUPABASE.md).
+**Puertos.** La dirección de la API está definida en los archivos de `frontend/src/services/`. 
 
 ---
 
@@ -163,6 +161,7 @@ Los endpoints de escritura (`POST`, `PUT`, `DELETE`) no pueden probarse desde el
 
 | Implementación | Responsable |
 |---|---|
+| Formulario de Inicio de Sesión | Dhamar Patiño |
 | Catálogo de eventos con búsqueda y filtros | Dhamar Patiño |
 | Creación y edición de eventos | Dhamar Patiño |
 | Inicio de sesión | Dhamar Patiño |
