@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { eventService } from '../services/eventService';
 import { registrationService } from '../services/registrationService';
 
-// Panel del organizador: edición, eliminación y participantes -- Cristina Pihuave
+// Panel del organizador: edición, eliminación y participantes
 export default function OrganizerDashboardPage({ setCurrentPage }) {
     const [events, setEvents] = useState([]);
+    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
@@ -14,16 +15,63 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
     const [openId, setOpenId] = useState(null);
     const [participants, setParticipants] = useState([]);
     const [loadingParticipants, setLoadingParticipants] = useState(false);
-
+    const currentUser = JSON.parse(localStorage.getItem('user') || 'null');9
+    
     const fetchEvents = async () => {
         try {
             setLoading(true);
-            const data = await eventService.getEvents();
-            setEvents(data);
+            
+            // 1. Preparar parámetros de consulta con user_id si está disponible
+            const paramsPublished = { status: 'published' };
+            const paramsDraft = { status: 'draft' };
+
+            if (currentUser?.id) {
+                paramsPublished.user_id = currentUser.id;
+                paramsDraft.user_id = currentUser.id;
+            }
+
+            // 2. Cargar publicados y borradores en paralelo
+            const [publishedRes, draftsRes] = await Promise.all([
+                eventService.getEvents(paramsPublished),
+                eventService.getEvents(paramsDraft)
+            ]);
+            
+
+            // Normalizar las respuestas (extrae .events o usa el array directo)
+            const publishedList = Array.isArray(publishedRes) 
+                ? publishedRes 
+                : (publishedRes?.events || []);
+
+            const draftsList = Array.isArray(draftsRes) 
+                ? draftsRes 
+                : (draftsRes?.events || []);
+
+            // 3. Unificar y eliminar duplicados por ID mediante Map
+            const eventsMap = new Map();
+            [...draftsList, ...publishedList].forEach((item) => {
+                if (item && item.id) {
+                    eventsMap.set(item.id, item);
+                }
+            });
+
+            const combinedEvents = Array.from(eventsMap.values());
+            
+            // 4. Filtrar por autor de forma segura 
+            const currentUserIdStr = currentUser?.id ? String(currentUser.id) : null;
+
+            const myEvents = currentUserIdStr 
+                ? combinedEvents.filter((e) => {
+                    const eventUserId = e.user_id ?? e.organizer_id ?? e.created_by ?? e.user?.id;
+                    // Solo incluir el evento si coincide exactamente el user_id
+                    return eventUserId && String(eventUserId) === currentUserIdStr;
+                })
+                : []; // Si no hay usuario logueado, no mostrar nada en el panel de organizador
+
+            setEvents(myEvents);
             setError(null);
         } catch (err) {
             console.error('Error al cargar eventos:', err);
-            setError('No se pudieron cargar los eventos.');
+            setError('No se pudieron cargar los eventos del organizador.');
         } finally {
             setLoading(false);
         }
@@ -36,7 +84,7 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
     // Elimina el evento tras confirmar
     const handleDelete = async (event) => {
         const confirmar = window.confirm(
-            `¿Eliminar el evento "${event.title}"? También se eliminarán sus inscripciones.`
+            `¿Eliminar el evento "${event.title || 'sin título'}"? También se eliminarán sus inscripciones.`
         );
         if (!confirmar) return;
 
@@ -46,10 +94,10 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
             const data = await eventService.deleteEvent(event.id);
 
             setEvents((list) => list.filter((e) => e.id !== event.id));
-            setMessage(data.message);
+            setMessage(data?.message || 'Evento eliminado correctamente.');
             setError(null);
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Error al eliminar el evento.');
         } finally {
             setDeletingId(null);
         }
@@ -66,9 +114,10 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
             setOpenId(eventId);
             setLoadingParticipants(true);
             const data = await registrationService.getByEvent(eventId);
-            setParticipants(data.registrations);
+            const list = Array.isArray(data) ? data : (data?.registrations || []);
+            setParticipants(list);
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Error al cargar participantes.');
             setParticipants([]);
         } finally {
             setLoadingParticipants(false);
@@ -76,9 +125,97 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
     };
 
     const formatDate = (dateStr) => {
-        if (!dateStr) return '';
+        if (!dateStr) return 'Sin fecha';
         const [year, month, day] = dateStr.split('-');
         return `${day}/${month}/${year}`;
+    };
+
+    // Clasificación estricta de borradores y publicados
+    const draftEvents = events.filter((e) => e.status === 'draft');
+    const publishedEvents = events.filter((e) => e.status === 'published' || !e.status);
+
+    // Renderizador de tarjeta de evento reutilizable
+    const renderEventCard = (event) => {
+        const isDraft = event.status === 'draft';
+
+        return (
+            <div key={event.id} style={cardStyle}>
+                <div style={{ padding: '18px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 240 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>
+                                {event.title || 'Evento sin título'}
+                            </h3>
+                            <span style={isDraft ? draftBadgeStyle : publishedBadgeStyle}>
+                                {isDraft ? 'Borrador' : 'Publicado'}
+                            </span>
+                        </div>
+                        
+                        <div style={{ fontSize: 12, color: '#7a7a7a' }}>
+                            {formatDate(event.start_date || event.date)} · {event.location || 'Ubicación no especificada'} · {event.faculty || 'Sin facultad'}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#9a9a9a', marginTop: 3 }}>
+                            Capacidad: {event.max_participants || 0} participantes
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {!isDraft && (
+                            <button onClick={() => toggleParticipants(event.id)} style={secondaryBtn}>
+                                {openId === event.id ? 'Ocultar' : 'Participantes'}
+                            </button>
+                        )}
+                        <button onClick={() => setCurrentPage('event-detail', event.id)} style={secondaryBtn}>
+                            Ver
+                        </button>
+                        <button onClick={() => setCurrentPage('edit-event', event.id)} style={secondaryBtn}>
+                            Editar
+                        </button>
+                        <button
+                            onClick={() => handleDelete(event)}
+                            disabled={deletingId === event.id}
+                            style={{
+                                ...dangerBtn,
+                                opacity: deletingId === event.id ? 0.6 : 1,
+                                cursor: deletingId === event.id ? 'not-allowed' : 'pointer',
+                            }}
+                        >
+                            {deletingId === event.id ? 'Eliminando...' : 'Eliminar'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Listado de participantes inscritos */}
+                {openId === event.id && !isDraft && (
+                    <div style={{ borderTop: '1px solid #e5e5e5', padding: '16px 20px', background: '#fafafa' }}>
+                        {loadingParticipants ? (
+                            <div style={{ fontSize: 12, color: '#7a7a7a' }}>Cargando participantes...</div>
+                        ) : participants.length === 0 ? (
+                            <div style={{ fontSize: 12, color: '#9a9a9a' }}>
+                                Este evento todavía no tiene inscritos.
+                            </div>
+                        ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                                <thead>
+                                    <tr>
+                                        <th style={thStyle}>Nombre</th>
+                                        <th style={thStyle}>Correo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {participants.map((p) => (
+                                        <tr key={p.id || p.email}>
+                                            <td style={tdStyle}>{p.name}</td>
+                                            <td style={tdStyle}>{p.email}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -91,7 +228,7 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
                             Panel del Organizador
                         </h1>
                         <p style={{ margin: '6px 0 0', fontSize: 13, color: '#7a7a7a' }}>
-                            Administra los eventos publicados y consulta sus participantes.
+                            Administra tus eventos guardados, publicados y consulta sus participantes.
                         </p>
                     </div>
                     <button onClick={() => setCurrentPage('create-event')} style={primaryBtn}>
@@ -104,7 +241,7 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
 
                 {loading && (
                     <div style={{ textAlign: 'center', padding: '60px 0', color: '#7a7a7a', fontSize: 14 }}>
-                        Cargando eventos...
+                        Cargando tus eventos...
                     </div>
                 )}
 
@@ -112,7 +249,7 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
                     <div style={emptyStyle}>
                         <div style={{ fontSize: 32, marginBottom: 12, color: '#9a9a9a' }}>○</div>
                         <p style={{ fontSize: 14, color: '#7a7a7a', margin: '0 0 16px' }}>
-                            Todavía no hay eventos publicados.
+                            Todavía no has creado eventos o borradores.
                         </p>
                         <button onClick={() => setCurrentPage('create-event')} style={secondaryBtn}>
                             Crear el primero
@@ -121,83 +258,106 @@ export default function OrganizerDashboardPage({ setCurrentPage }) {
                 )}
 
                 {!loading && events.length > 0 && (
-                    <div style={{ display: 'grid', gap: 12 }}>
-                        {events.map((event) => (
-                            <div key={event.id} style={cardStyle}>
-                                <div style={{ padding: '18px 20px', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-                                    <div style={{ flex: 1, minWidth: 240 }}>
-                                        <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>
-                                            {event.title}
-                                        </h3>
-                                        <div style={{ fontSize: 12, color: '#7a7a7a' }}>
-                                            {formatDate(event.date)} · {event.location} · {event.faculty}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: '#9a9a9a', marginTop: 3 }}>
-                                            Capacidad: {event.max_participants} participantes
-                                        </div>
-                                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
-                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                        <button onClick={() => toggleParticipants(event.id)} style={secondaryBtn}>
-                                            {openId === event.id ? 'Ocultar' : 'Participantes'}
-                                        </button>
-                                        <button onClick={() => setCurrentPage('event-detail', event.id)} style={secondaryBtn}>
-                                            Ver
-                                        </button>
-                                        <button onClick={() => setCurrentPage('edit-event', event.id)} style={secondaryBtn}>
-                                            Editar
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(event)}
-                                            disabled={deletingId === event.id}
-                                            style={{
-                                                ...dangerBtn,
-                                                opacity: deletingId === event.id ? 0.6 : 1,
-                                                cursor: deletingId === event.id ? 'not-allowed' : 'pointer',
-                                            }}
-                                        >
-                                            {deletingId === event.id ? 'Eliminando...' : 'Eliminar'}
-                                        </button>
-                                    </div>
+                        {/* SECCIÓN 1: BORRADORES */}
+                        {draftEvents.length > 0 && (
+                            <section>
+                                <div style={sectionHeaderStyle}>
+                                    <h2 style={sectionTitleStyle}>Borradores</h2>
+                                    <span style={countBadgeStyle}>{draftEvents.length}</span>
                                 </div>
+                                <div style={{ display: 'grid', gap: 12 }}>
+                                    {draftEvents.map(renderEventCard)}
+                                </div>
+                            </section>
+                        )}
 
-                                {/* Listado de participantes inscritos */}
-                                {openId === event.id && (
-                                    <div style={{ borderTop: '1px solid #e5e5e5', padding: '16px 20px', background: '#fafafa' }}>
-                                        {loadingParticipants ? (
-                                            <div style={{ fontSize: 12, color: '#7a7a7a' }}>Cargando participantes...</div>
-                                        ) : participants.length === 0 ? (
-                                            <div style={{ fontSize: 12, color: '#9a9a9a' }}>
-                                                Este evento todavía no tiene inscritos.
-                                            </div>
-                                        ) : (
-                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                                                <thead>
-                                                    <tr>
-                                                        <th style={thStyle}>Nombre</th>
-                                                        <th style={thStyle}>Correo</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {participants.map((p) => (
-                                                        <tr key={p.id}>
-                                                            <td style={tdStyle}>{p.name}</td>
-                                                            <td style={tdStyle}>{p.email}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                    </div>
-                                )}
+                        {/* LÍNEA DIVISORIA DECORATIVA */}
+                        {draftEvents.length > 0 && publishedEvents.length > 0 && (
+                            <div style={dividerContainerStyle}>
+                                <hr style={dividerLineStyle} />
                             </div>
-                        ))}
+                        )}
+
+                        {/* SECCIÓN 2: PUBLICADOS */}
+                        {publishedEvents.length > 0 && (
+                            <section>
+                                <div style={sectionHeaderStyle}>
+                                    <h2 style={sectionTitleStyle}>Eventos Publicados</h2>
+                                    <span style={countBadgeStyle}>{publishedEvents.length}</span>
+                                </div>
+                                <div style={{ display: 'grid', gap: 12 }}>
+                                    {publishedEvents.map(renderEventCard)}
+                                </div>
+                            </section>
+                        )}
+
                     </div>
                 )}
             </div>
         </div>
     );
 }
+
+// Estilos
+const sectionHeaderStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+};
+
+const sectionTitleStyle = {
+    margin: 0,
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#2a2a2a',
+    letterSpacing: '-0.01em',
+};
+
+const countBadgeStyle = {
+    background: '#e0e0e0',
+    color: '#4a4a4a',
+    borderRadius: '12px',
+    padding: '2px 8px',
+    fontSize: 11,
+    fontWeight: 600,
+};
+
+const draftBadgeStyle = {
+    background: '#fff3cd',
+    color: '#856404',
+    border: '1px solid #ffeeba',
+    borderRadius: 4,
+    padding: '2px 6px',
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+};
+
+const publishedBadgeStyle = {
+    background: '#d4edda',
+    color: '#155724',
+    border: '1px solid #c3e6cb',
+    borderRadius: 4,
+    padding: '2px 6px',
+    fontSize: 10,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+};
+
+const dividerContainerStyle = {
+    margin: '8px 0',
+    display: 'flex',
+    alignItems: 'center',
+};
+
+const dividerLineStyle = {
+    border: 'none',
+    borderTop: '1px dashed #d0d0d0',
+    width: '100%',
+};
 
 const cardStyle = {
     background: '#fff',

@@ -326,7 +326,6 @@ export default function HomePage({ currentPage, setCurrentPage, role = 'organize
                     <EventCard
                         key={event.id}
                         event={event}
-                        // Abre el detalle del evento seleccionado -- Cristina Pihuave
                         onSelect={(selectedEvent) => setCurrentPage('event-detail', selectedEvent.id)}
                     />
                     ))}

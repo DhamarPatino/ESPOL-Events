@@ -1,111 +1,96 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+// src/services/eventService.js
+
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
+const getAuthHeaders = (isFormData = false) => {
+  const token = localStorage.getItem('token');
+  const headers = { 'Accept': 'application/json' };
+
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+};
+
+const request = async (url, options = {}) => {
+  const response = await fetch(url, options);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data?.message || 'Error al consultar los eventos.');
+  }
+
+  return data;
+};
 
 export const eventService = {
-  // 1. Obtener eventos con soporte para búsqueda y filtrado
+
   getEvents: async (filters = {}) => {
     const queryParams = new URLSearchParams();
 
-    if (filters.search) queryParams.append('search', filters.search);
-    if (filters.category) queryParams.append('category', filters.category);
-    if (filters.faculty) queryParams.append('faculty', filters.faculty);
-    if (filters.date) queryParams.append('date', filters.date);
+    if (filters.search) {
+      queryParams.append('search', filters.search);
+    }
+
+    if (filters.category) {
+      queryParams.append('category', filters.category);
+    }
+
+    if (filters.faculty) {
+      queryParams.append('faculty', filters.faculty);
+    }
+
+    if (filters.date) {
+      queryParams.append('date', filters.date);
+    }
+
+    // IMPORTANTE:
+    // Estos dos filtros eran los que faltaban
+    if (filters.status) {
+      queryParams.append('status', filters.status);
+    }
+
+    if (filters.user_id) {
+      queryParams.append('user_id', filters.user_id);
+    }
 
     const queryString = queryParams.toString();
-    const url = `${API_BASE_URL}/events${queryString ? `?${queryString}` : ''}`;
 
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/json' },
+    const url = `${API_BASE_URL}/events${
+      queryString ? `?${queryString}` : ''
+    }`;
+
+    const data = await request(url, {
+      headers: getAuthHeaders(),
     });
 
-    if (!response.ok) throw new Error('Error al consultar los eventos.');
-    const data = await response.json();
-    return data.events;
+    const events = data?.events ?? data?.data?.events ?? data?.data ?? data;
+    return Array.isArray(events) ? events : [];
   },
 
-  // 2. Crear un nuevo evento (Acepta FormData o JSON plano)
-  createEvent: async (eventData) => {
-    const isFormData = eventData instanceof FormData;
+  createEvent: async (eventData) => request(`${API_BASE_URL}/events`, {
+    method: 'POST',
+    headers: getAuthHeaders(eventData instanceof FormData),
+    body: eventData instanceof FormData ? eventData : JSON.stringify(eventData),
+  }),
 
-    const headers = {
-      'Accept': 'application/json',
-    };
+  getEventById: async (id) => request(`${API_BASE_URL}/events/${id}`, {
+    headers: getAuthHeaders(),
+  }),
 
-    // Solo definir Content-Type si NO es FormData
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    }
+  updateEvent: async (id, eventData) => request(`${API_BASE_URL}/events/${id}`, {
+    method: eventData instanceof FormData ? 'POST' : 'PUT',
+    headers: getAuthHeaders(eventData instanceof FormData),
+    body: eventData instanceof FormData ? eventData : JSON.stringify(eventData),
+  }),
 
-    const response = await fetch(`${API_BASE_URL}/events`, {
-      method: 'POST',
-      headers,
-      body: isFormData ? eventData : JSON.stringify(eventData),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al registrar el evento.');
-    }
-
-    return data;
-  },
-
-  // 3. Obtener detalle de un evento por ID
-  getEventById: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/events/${id}`, {
-      headers: { 'Accept': 'application/json' },
-    });
-    if (!response.ok) throw new Error('Evento no encontrado.');
-    return await response.json();
-  },
-
-  // 4. Actualizar un evento (Agregado)
-  updateEvent: async (id, eventData) => {
-    const isFormData = eventData instanceof FormData;
-
-    const headers = {
-      'Accept': 'application/json',
-    };
-
-    if (!isFormData) {
-      headers['Content-Type'] = 'application/json';
-    } else if (!eventData.has('_method')) {
-      // Laravel requiere _method=PUT al enviar archivos via POST
-      eventData.append('_method', 'PUT');
-    }
-
-    const url = `${API_BASE_URL}/events/${id}`;
-    // Si contiene archivos se envía como POST con _method=PUT
-    const method = isFormData ? 'POST' : 'PUT';
-
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: isFormData ? eventData : JSON.stringify(eventData),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al actualizar el evento.');
-    }
-
-    return data;
-  },
-
-  // 5. Eliminar evento (Agregado)
-  deleteEvent: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/events/${id}`, {
-      method: 'DELETE',
-      headers: { 'Accept': 'application/json' },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Error al eliminar el evento.');
-    }
-
-    return data;
-  },
+  deleteEvent: async (id) => request(`${API_BASE_URL}/events/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  }),
 };

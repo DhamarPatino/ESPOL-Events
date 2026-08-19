@@ -10,34 +10,40 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id', // <--- Agregamos la referencia al usuario creador
         'title',
         'description',
         'category',
         'modality',
         'faculty',
-        'date',
+        'start_date',
+        'end_date',
         'start_time',
-        'end_time',       // <-- AGREGADO
-        'image',          // <-- AGREGADO (o 'image_url')
+        'end_time',
+        'image',
         'location',
         'max_participants',
+        'status',
     ];
+
+    // Relación con el usuario organizador
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     // Inscripciones y control de cupos -- Cristina Pihuave
 
-    // Un evento tiene muchas inscripciones
     public function registrations()
     {
         return $this->hasMany(Registration::class);
     }
 
-    // Cantidad de participantes inscritos
     public function registeredCount()
     {
         return $this->registrations()->count();
     }
 
-    // Cupos que quedan libres
     public function availableSpots()
     {
         $libres = $this->max_participants - $this->registeredCount();

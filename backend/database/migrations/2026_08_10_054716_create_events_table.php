@@ -14,21 +14,29 @@ return new class extends Migration
         Schema::create('events', function (Blueprint $table) {
             $table->id();
 
+            // Relación con la tabla users (Organizador)
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+
             $table->string('title');
-            $table->text('description');
+            $table->text('description')->nullable();
 
-            $table->string('category');
-            $table->string('modality');
-            $table->string('faculty');
+            $table->string('category')->nullable();
+            $table->string('modality')->nullable();
+            $table->string('faculty')->nullable();
 
-            $table->date('date');
-            $table->time('start_time');
+            // Fechas y horas (soporta eventos de un día o de varios)
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->time('start_time')->nullable();
             $table->time('end_time')->nullable();
+
             $table->string('image')->nullable();
+            $table->string('location')->nullable();
 
-            $table->string('location');
+            $table->unsignedInteger('max_participants')->nullable();
 
-            $table->unsignedInteger('max_participants');
+            // Estado del evento: draft o published (por defecto publicado)
+            $table->string('status')->default('published');
 
             $table->timestamps();
         });

@@ -4,6 +4,9 @@ import { eventService } from '../services/eventService';
 const FACULTIES_LIST = ['FIEC', 'FIMCP', 'FCSH', 'FICT', 'FCNM', 'FADCOM', 'FIMCBOR'];
 const CATEGORIES_LIST = ['Conferencia', 'Taller', 'Seminario', 'Hackathon', 'Feria', 'Networking'];
 
+const normalizeDate = (value) => typeof value === 'string' ? value.slice(0, 10) : '';
+const normalizeTime = (value) => typeof value === 'string' ? value.slice(0, 5) : '';
+
 export default function CreateEventPage({ navigate, mode = 'create', eventId = null }) {
     const isEdit = mode === 'edit';
 
@@ -14,6 +17,7 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
         category: CATEGORIES_LIST[0],
         type: 'Presencial',
         date: '',
+        endDate: '',
         time: '',
         endTime: '',
         location: '',
@@ -27,52 +31,59 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(false); // 👈 Nuevo estado para mensaje de éxito
+    const [successMessage, setSuccessMessage] = useState('');
 
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-    // En modo edición se cargan los datos reales del evento -- Cristina Pihuave
+    // Carga de datos para edición
     useEffect(() => {
         if (!isEdit || !eventId) return;
 
         const cargarEvento = async () => {
             try {
+                setLoading(true);
+                setError(null);
                 const data = await eventService.getEventById(eventId);
-                const ev = data.event;
+                const ev = data?.event ?? data?.data?.event ?? data?.data ?? data;
+
+                if (!ev || typeof ev !== 'object') {
+                    throw new Error('La respuesta no contiene un evento válido.');
+                }
 
                 setForm({
-                    id: ev.id,
-                    title: ev.title || '',
-                    description: ev.description || '',
-                    faculty: ev.faculty || FACULTIES_LIST[0],
-                    category: ev.category || CATEGORIES_LIST[0],
-                    type: ev.modality || 'Presencial',
-                    date: ev.date || '',
-                    time: ev.start_time ? ev.start_time.slice(0, 5) : '',
-                    endTime: ev.end_time ? ev.end_time.slice(0, 5) : '',
-                    location: ev.location || '',
-                    capacity: ev.max_participants ? String(ev.max_participants) : '',
+                    id: ev.id ?? eventId,
+                    title: ev.title ?? '',
+                    description: ev.description ?? '',
+                    faculty: ev.faculty ?? FACULTIES_LIST[0],
+                    category: ev.category ?? CATEGORIES_LIST[0],
+                    type: ev.modality ?? 'Presencial',
+                    date: normalizeDate(ev.start_date ?? ev.date),
+                    endDate: normalizeDate(ev.end_date ?? ev.fecha_fin),
+                    time: normalizeTime(ev.start_time),
+                    endTime: normalizeTime(ev.end_time),
+                    location: ev.location ?? '',
+                    capacity: ev.max_participants != null ? String(ev.max_participants) : '',
                 });
 
-                if (ev.image) setImagePreview(ev.image);
+                setImagePreview(ev.image ?? null);
             } catch (err) {
                 console.error('Error al cargar el evento:', err);
                 setError('No se pudo cargar la información del evento.');
+            } finally {
+                setLoading(false);
             }
         };
 
         cargarEvento();
     }, [isEdit, eventId]);
 
-    // Helper seguro para navegar sin romper la app si no se pasó la función
     const safeNavigate = (page) => {
         if (typeof navigate === 'function') {
             navigate(page);
         } else {
-            // Redirección nativa si no usas Router ni pasas la función desde App
-            window.location.href = '/'; 
+            window.location.href = '/';
         }
-};
+    };
 
     const handleFileChange = (file) => {
         if (file && file.type.startsWith('image/')) {
@@ -110,34 +121,61 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    // Función unificada para guardar (Publicar o Borrador)
+    const handleSave = async (targetStatus = 'published') => {
         setLoading(true);
         setError(null);
 
-        if (!form.title || !form.description || !form.date || !form.time || !form.location || !form.capacity) {
-            setError('Por favor completa todos los campos obligatorios (*).');
+        const isDraft = targetStatus === 'draft';
+
+        // 1. Validaciones requeridas solo si es PUBLICACIÓN
+        if (!isDraft) {
+            if (!form.title || !form.description || !form.date || !form.time || !form.location || !form.capacity) {
+                setError('Por favor completa todos los campos obligatorios (*) para publicar el evento.');
+                setLoading(false);
+                return;
+            }
+        } else {
+            // Mínimo requerimiento para un borrador: que tenga título
+            if (!form.title.trim()) {
+                setError('Asigna al menos un título al evento para poder guardarlo como borrador.');
+                setLoading(false);
+                return;
+            }
+        }
+
+        // 2. Validaciones de fechas si están ingresadas
+        if (form.endDate && form.date && form.endDate < form.date) {
+            setError('La fecha de finalización no puede ser anterior a la fecha de inicio.');
             setLoading(false);
             return;
         }
 
-        if (form.endTime && form.endTime <= form.time) {
+        const isSameDay = !form.endDate || form.endDate === form.date;
+        if (isSameDay && form.time && form.endTime && form.endTime <= form.time) {
             setError('La hora de finalización debe ser posterior a la hora de inicio.');
             setLoading(false);
             return;
         }
 
+        // 3. Armado del FormData
         const formData = new FormData();
         formData.append('title', form.title);
-        formData.append('description', form.description);
+        formData.append('description', form.description || '');
         formData.append('faculty', form.faculty);
         formData.append('category', form.category);
         formData.append('modality', form.type || 'Presencial');
-        formData.append('date', form.date);
-        formData.append('start_time', form.time);
+        formData.append('status', isDraft ? 'draft' : 'published'); // 👈 Estado enviado al Backend
+
+        if (form.date) {
+            formData.append('date', form.date);
+            formData.append('start_date', form.date);
+        }
+        if (form.endDate) formData.append('end_date', form.endDate);
+        if (form.time) formData.append('start_time', form.time);
         if (form.endTime) formData.append('end_time', form.endTime);
-        formData.append('max_participants', parseInt(form.capacity, 10));
-        formData.append('location', form.location.trim());
+        if (form.capacity) formData.append('max_participants', parseInt(form.capacity, 10));
+        if (form.location) formData.append('location', form.location.trim());
 
         if (imageFile) {
             formData.append('image', imageFile);
@@ -151,23 +189,22 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                 await eventService.createEvent(formData);
             }
 
-            // 1. Marcar creación como exitosa
-            setSuccess(true);
+            const msg = isDraft ? 'Borrador guardado correctamente.' : `¡Evento ${isEdit ? 'actualizado' : 'publicado'} correctamente!`;
+            setSuccessMessage(msg);
 
-            // 2. Redirigir a inicio después de 1.5 segundos
             setTimeout(() => {
                 safeNavigate('home');
             }, 1500);
 
         } catch (err) {
             console.error('Error al guardar el evento:', err);
-            setError('Ocurrió un error al guardar el evento en el servidor. Verifica los datos.');
+            setError('Ocurrió un error al guardar el evento en el servidor.');
         } finally {
             setLoading(false);
         }
     };
 
-    const isDisabled = loading || success; // Bloquea interacción durante carga o tras éxito
+    const isDisabled = loading || !!successMessage;
 
     return (
         <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
@@ -194,15 +231,15 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                             {isEdit ? 'Editar Evento' : 'Crear Nuevo Evento'}
                         </h1>
                         <p style={{ margin: '6px 0 0', fontSize: 13, color: '#7a7a7a' }}>
-                            {isEdit ? 'Actualiza la información del evento.' : 'Completa el formulario para publicar un nuevo evento.'}
+                            {isEdit ? 'Actualiza la información del evento.' : 'Completa el formulario para publicar un nuevo evento o guardarlo como borrador.'}
                         </p>
                     </div>
                 </div>
 
                 {/* Notificación de Éxito */}
-                {success && (
+                {successMessage && (
                     <div style={{ background: '#edf7ed', color: '#1e4620', border: '1px solid #c3e6cb', padding: '12px 16px', borderRadius: 4, fontSize: 13, marginBottom: 20, fontWeight: 600 }}>
-                        ¡Evento {isEdit ? 'actualizado' : 'creado'} correctamente! Redirigiendo a inicio...
+                        {successMessage} Redirigiendo...
                     </div>
                 )}
 
@@ -213,7 +250,7 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <form onSubmit={(e) => { e.preventDefault(); handleSave('published'); }} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     
                     {/* Información General */}
                     <FormSection title="Información General">
@@ -235,6 +272,9 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             <Field label="Facultad" required>
                                 <select disabled={isDisabled} value={form.faculty} onChange={set('faculty')} style={inputStyle}>
+                                    {form.faculty && !FACULTIES_LIST.includes(form.faculty) && (
+                                        <option value={form.faculty}>{form.faculty}</option>
+                                    )}
                                     {FACULTIES_LIST.map((f) => (
                                         <option key={f} value={f}>{f}</option>
                                     ))}
@@ -243,6 +283,9 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
 
                             <Field label="Categoría" required>
                                 <select disabled={isDisabled} value={form.category} onChange={set('category')} style={inputStyle}>
+                                    {form.category && !CATEGORIES_LIST.includes(form.category) && (
+                                        <option value={form.category}>{form.category}</option>
+                                    )}
                                     {CATEGORIES_LIST.map((c) => (
                                         <option key={c} value={c}>{c}</option>
                                     ))}
@@ -252,6 +295,9 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
 
                         <Field label="Tipo de Evento">
                             <select disabled={isDisabled} value={form.type} onChange={set('type')} style={inputStyle}>
+                                {form.type && !['Presencial', 'Virtual', 'Híbrido'].includes(form.type) && (
+                                    <option value={form.type}>{form.type}</option>
+                                )}
                                 <option value="Presencial">Presencial</option>
                                 <option value="Virtual">Virtual</option>
                                 <option value="Híbrido">Híbrido</option>
@@ -261,9 +307,13 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
 
                     {/* Fecha, Hora y Lugar */}
                     <FormSection title="Fecha, Hora y Lugar">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                            <Field label="Fecha" required>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <Field label="Fecha de inicio" required>
                                 <input disabled={isDisabled} type="date" value={form.date} onChange={set('date')} style={inputStyle} />
+                            </Field>
+
+                            <Field label="Fecha de fin (Opcional)">
+                                <input disabled={isDisabled} type="date" value={form.endDate} onChange={set('endDate')} min={form.date} style={inputStyle} />
                             </Field>
 
                             <Field label="Hora de inicio" required>
@@ -317,7 +367,7 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                                     <img src={imagePreview} alt="Vista previa" style={{ maxHeight: 180, maxWidth: '100%', borderRadius: 4, objectFit: 'cover' }} />
                                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                        <span style={{ fontSize: 12, color: '#4a4a4a', fontWeight: 600 }}>{imageFile?.name}</span>
+                                        <span style={{ fontSize: 12, color: '#4a4a4a', fontWeight: 600 }}>{imageFile?.name || 'Imagen seleccionada'}</span>
                                         <button
                                             type="button"
                                             onClick={removeImage}
@@ -366,23 +416,27 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                         </button>
 
                         <div style={{ display: 'flex', gap: 10 }}>
+                            {/* 👈 Botón con onClick asignado para borrador */}
                             <button
                                 type="button"
+                                onClick={() => handleSave('draft')}
                                 disabled={isDisabled}
                                 style={{
-                                    background: 'none',
-                                    border: '1px solid #d4d4d4',
+                                    background: '#fff',
+                                    border: '1px solid #2a2a2a',
                                     borderRadius: 4,
                                     padding: '11px 20px',
                                     fontSize: 13,
-                                    color: '#5a5a5a',
+                                    color: '#2a2a2a',
+                                    fontWeight: 600,
                                     cursor: isDisabled ? 'not-allowed' : 'pointer',
                                     opacity: isDisabled ? 0.5 : 1,
                                 }}
                             >
-                                Guardar borrador
+                                {loading ? 'Guardando...' : 'Guardar borrador'}
                             </button>
 
+                            {/* Botón principal de publicación */}
                             <button
                                 type="submit"
                                 disabled={isDisabled}
@@ -398,7 +452,7 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
                                     opacity: isDisabled ? 0.7 : 1,
                                 }}
                             >
-                                {loading ? 'Guardando...' : success ? '¡Publicado!' : isEdit ? 'Guardar Cambios' : 'Publicar Evento'}
+                                {loading ? 'Guardando...' : isEdit ? 'Guardar Cambios' : 'Publicar Evento'}
                             </button>
                         </div>
                     </div>
