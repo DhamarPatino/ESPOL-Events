@@ -14,22 +14,39 @@ class EventController extends Controller
     // POST /api/events
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'category' => 'required|string|max:100',
-            'modality' => 'required|string|max:50',
-            'faculty' => 'required|string|max:100',
-            'date' => 'required|date',
-            // Acepta tanto "10:00" como "10:00:00"
-            'start_time' => 'required|date_format:H:i,H:i:s',
-            'end_time' => 'nullable|date_format:H:i,H:i:s',
-            'image' => 'nullable', // 👈 1. Se remueve "|string" para aceptar también archivos
-            'location' => 'required|string|max:255',
-            'max_participants' => 'required|integer|min:1',
-        ]);
+        $isDraft = $request->input('status') === 'draft';
 
-        // 👈 2. Si se subió un archivo físico, se almacena y se convierte a URL pública
+        $rules = [
+            'user_id'          => 'nullable|integer',
+            'title'            => 'required|string|max:255',
+            'description'      => $isDraft ? 'nullable|string' : 'required|string',
+            'category'         => $isDraft ? 'nullable|string|max:100' : 'required|string|max:100',
+            'modality'         => $isDraft ? 'nullable|string|max:50' : 'required|string|max:50',
+            'faculty'          => $isDraft ? 'nullable|string|max:100' : 'required|string|max:100',
+            'start_date'       => $isDraft ? 'nullable|date' : 'required|date',
+            'end_date'         => 'nullable|date|after_or_equal:start_date',
+            'start_time'       => $isDraft ? 'nullable' : 'required|date_format:H:i,H:i:s',
+            'end_time'         => 'nullable|date_format:H:i,H:i:s',
+            'image'            => 'nullable',
+            'location'         => $isDraft ? 'nullable|string|max:255' : 'required|string|max:255',
+            'max_participants' => $isDraft ? 'nullable|integer|min:1' : 'required|integer|min:1',
+            'status'           => 'nullable|string|in:draft,published',
+        ];
+
+        $validated = $request->validate($rules);
+
+        if ($request->user()) {
+            $validated['user_id'] = $request->user()->id;
+        } elseif ($request->filled('user_id')) {
+            $validated['user_id'] = $request->input('user_id');
+        }
+
+        if (empty($validated['end_date']) && !empty($validated['start_date'])) {
+            $validated['end_date'] = $validated['start_date'];
+        }
+
+        $validated['status'] = $request->input('status', 'published');
+
         if ($request->hasFile('image')) {
             $validated['image'] = ImageStorage::store($request->file('image'));
         }
@@ -37,11 +54,10 @@ class EventController extends Controller
         $event = Event::create($validated);
 
         return response()->json([
-            'message' => 'Evento creado correctamente.',
-            'event' => $event
+            'message' => $isDraft ? 'Borrador guardado correctamente.' : 'Evento creado correctamente.',
+            'event'   => $event
         ], 201);
     }
-
 
     // Consulta, búsqueda y filtrado de eventos -- Dhamar Patiño
 
@@ -49,55 +65,63 @@ class EventController extends Controller
     public function index(Request $request)
     {
         $request->validate([
-            'search' => 'nullable|string|max:255',
+            'search'   => 'nullable|string|max:255',
             'category' => 'nullable|string|max:100',
-            'date' => 'nullable|date',
-            'faculty' => 'nullable|string|max:100',
+            'date'     => 'nullable|date',
+            'faculty'  => 'nullable|string|max:100',
+            'status'   => 'nullable|string|in:draft,published',
+            'user_id'  => 'nullable|integer',
         ]);
 
         $query = Event::query();
 
-        // Búsqueda general
+        // Si se pasa user_id se filtra por usuario
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
+
+        // Si se pide un status específico (draft o published)
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        } else if (!$request->filled('user_id')) {
+            // Solo restringir a 'published' en la vista pública si no están filtrando por su usuario
+            $query->where('status', 'published');
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
-
-            // Ajuste para PostgreSQL: "like" distingue mayúsculas, "ilike" no -- Cristina Pihuave
             $like = DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
             $query->where(function ($q) use ($search, $like) {
                 $q->where('title', $like, "%{$search}%")
-                    ->orWhere('description', $like, "%{$search}%");
+                  ->orWhere('description', $like, "%{$search}%");
             });
         }
 
-        // Filtro por categoría
         if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
 
-        // Filtro por fecha
         if ($request->filled('date')) {
-            $query->whereDate('date', $request->date);
+            $filterDate = $request->date;
+            $query->whereDate('start_date', '<=', $filterDate)
+                  ->whereDate('end_date', '>=', $filterDate);
         }
 
-        // Filtro por facultad
         if ($request->filled('faculty')) {
             $query->where('faculty', $request->faculty);
         }
 
         $events = $query
-            ->orderBy('date', 'asc')
+            ->orderBy('start_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->get();
 
         return response()->json([
             'message' => 'Eventos consultados correctamente.',
-            'events' => $events
+            'events'  => $events
         ]);
     }
-
-
-    // Consulta del detalle, actualización y eliminación de eventos -- Cristina Pihuave
 
     // GET /api/events/{id}
     public function show($id)
@@ -111,10 +135,10 @@ class EventController extends Controller
         }
 
         return response()->json([
-            'message' => 'Evento consultado correctamente.',
-            'event' => $event,
+            'message'                 => 'Evento consultado correctamente.',
+            'event'                   => $event,
             'registered_participants' => $event->registeredCount(),
-            'available_spots' => $event->availableSpots(),
+            'available_spots'         => $event->availableSpots(),
         ]);
     }
 
@@ -130,47 +154,35 @@ class EventController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'sometimes|required|string|max:255',
-            'description' => 'sometimes|required|string',
-            'category' => 'sometimes|required|string|max:100',
-            'modality' => 'sometimes|required|string|max:50',
-            'faculty' => 'sometimes|required|string|max:100',
-            'date' => 'sometimes|required|date',
-            'start_time' => 'sometimes|required|date_format:H:i,H:i:s',
-            'end_time' => 'nullable|date_format:H:i,H:i:s',
-            'image' => 'nullable', // 👈 3. Se remueve "|string" también aquí
-            'location' => 'sometimes|required|string|max:255',
-            'max_participants' => 'sometimes|required|integer|min:1',
+            'user_id'          => 'sometimes|nullable|integer',
+            'title'            => 'sometimes|required|string|max:255',
+            'description'      => 'sometimes|nullable|string',
+            'category'         => 'sometimes|nullable|string|max:100',
+            'modality'         => 'sometimes|nullable|string|max:50',
+            'faculty'          => 'sometimes|nullable|string|max:100',
+            'start_date'       => 'sometimes|nullable|date',
+            'end_date'         => 'sometimes|nullable|date|after_or_equal:start_date',
+            'start_time'       => 'sometimes|nullable|date_format:H:i,H:i:s',
+            'end_time'         => 'nullable|date_format:H:i,H:i:s',
+            'image'            => 'nullable',
+            'location'         => 'sometimes|nullable|string|max:255',
+            'max_participants' => 'sometimes|nullable|integer|min:1',
+            'status'           => 'sometimes|required|string|in:draft,published',
         ]);
 
-        // 👈 4. Procesar nueva imagen si se subió como archivo al actualizar
         if ($request->hasFile('image')) {
             $validated['image'] = ImageStorage::store($request->file('image'));
         }
 
-        if (empty($validated)) {
-            return response()->json([
-                'message' => 'No se enviaron datos para actualizar.'
-            ], 422);
-        }
-
-        // No se permite reducir los cupos por debajo de los participantes ya inscritos
-        if (isset($validated['max_participants'])) {
-            $registered = $event->registeredCount();
-
-            if ($validated['max_participants'] < $registered) {
-                return response()->json([
-                    'message' => 'El máximo de participantes no puede ser menor a los inscritos actuales.',
-                    'registered_participants' => $registered,
-                ], 422);
-            }
+        if (isset($validated['start_date']) && empty($validated['end_date']) && empty($event->end_date)) {
+            $validated['end_date'] = $validated['start_date'];
         }
 
         $event->update($validated);
 
         return response()->json([
             'message' => 'Evento actualizado correctamente.',
-            'event' => $event->fresh(),
+            'event'   => $event->fresh(),
         ]);
     }
 

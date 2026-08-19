@@ -77,13 +77,25 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
         }
     };
 
-    // Fecha en formato legible, sin desfase de zona horaria
+    // Formatea fechas locales para evitar desfases de zona horaria.
     const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        const [year, month, day] = dateStr.split('-');
+        if (!dateStr || typeof dateStr !== 'string') return '';
+
+        const [year, month, day] = dateStr.split('T')[0].split('-');
         const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
             'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-        return `${parseInt(day, 10)} de ${meses[parseInt(month, 10) - 1]} de ${year}`;
+
+        if (!year || !month || !day || !meses[Number(month) - 1]) return '';
+        return `${Number(day)} de ${meses[Number(month) - 1]} de ${year}`;
+    };
+
+    const formatDateRange = (startDate, endDate) => {
+        const start = formatDate(startDate);
+        const end = formatDate(endDate);
+
+        if (!start) return 'Fecha por confirmar';
+        if (!end || startDate === endDate) return start;
+        return `${start} al ${end}`;
     };
 
     const formatTime = (start, end) => {
@@ -161,7 +173,10 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                             </h1>
 
                             <div style={{ display: 'grid', gap: 10, marginBottom: 22 }}>
-                                <InfoRow label="Fecha" value={formatDate(event.date)} />
+                                <InfoRow
+                                    label="Fecha"
+                                    value={formatDateRange(event.start_date || event.date, event.end_date || event.fecha_fin)}
+                                />
                                 <InfoRow label="Horario" value={formatTime(event.start_time, event.end_time)} />
                                 <InfoRow label="Ubicación" value={event.location} />
                                 <InfoRow label="Organiza" value={event.faculty} />
