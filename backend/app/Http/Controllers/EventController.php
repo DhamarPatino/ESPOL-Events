@@ -114,9 +114,17 @@ class EventController extends Controller
         }
 
         $events = $query
+            ->withCount('registrations')
             ->orderBy('start_date', 'asc')
             ->orderBy('start_time', 'asc')
             ->get();
+
+        // Cada evento incluye sus cupos para mostrarlos en el catalogo -- Cristina Pihuave
+        $events->each(function ($event) {
+            $inscritos = $event->registrations_count;
+            $event->registered_participants = $inscritos;
+            $event->available_spots = max(($event->max_participants ?? 0) - $inscritos, 0);
+        });
 
         return response()->json([
             'message' => 'Eventos consultados correctamente.',

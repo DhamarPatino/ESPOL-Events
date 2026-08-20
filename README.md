@@ -10,15 +10,39 @@ Proyecto de la asignatura de Lenguajes de Programación.
 
 ---
 
+## Aplicación en línea
+
+La aplicación está desplegada y se puede usar sin instalar nada:
+
+**https://espol-events.vercel.app**
+
+La API está disponible en `https://espol-events.onrender.com/api`.
+
+> El servidor del backend usa un plan gratuito que se suspende tras 15 minutos sin uso. Si la primera visita tarda en cargar, es porque está despertando; puede demorar hasta un minuto.
+
+---
+
 ## Tecnologías
 
-| Componente | Herramientas |
-|---|---|
-| Backend | PHP, Laravel, API REST |
-| Frontend | React, Vite, JavaScript |
-| Base de datos | PostgreSQL (Supabase) |
-| Almacenamiento de imágenes | Supabase Storage |
-| Prototipado | Figma |
+| Componente | Herramientas | Dónde está desplegado |
+|---|---|---|
+| Backend | PHP, Laravel, API REST | Render |
+| Frontend | React, Vite, JavaScript | Vercel |
+| Base de datos | PostgreSQL | Supabase |
+| Almacenamiento de imágenes | Supabase Storage | Supabase |
+| Prototipado | Figma | — |
+
+---
+
+## Cómo se usa la aplicación
+
+**Sin cuenta** se puede consultar el catálogo de eventos, buscar y filtrar por facultad, categoría o fecha, ver el calendario mensual, revisar los eventos de cada facultad y abrir el detalle de cualquier evento.
+
+**Con una cuenta de participante** (botón *Registrarse*) se puede además inscribirse en los eventos, consultar las propias inscripciones desde *Mis Inscripciones* y cancelar la participación.
+
+**Con una cuenta de organizador** se accede al *Dashboard*, desde donde se crean eventos, se editan, se eliminan y se consulta la lista de participantes inscritos en cada uno. El tipo de cuenta se elige al registrarse.
+
+Desde el detalle de cada evento se puede compartir por WhatsApp, copiar el enlace y descargar el evento para agregarlo a Google Calendar u Outlook.
 
 ---
 
@@ -38,7 +62,9 @@ Si falta alguna, se activa quitando el `;` de la línea correspondiente en `php.
 
 ---
 
-## Puesta en marcha
+## Ejecución local
+
+Solo hace falta si se va a modificar el código. Para únicamente usar la aplicación, basta con abrir la dirección de arriba.
 
 La aplicación necesita **dos servidores corriendo al mismo tiempo**, cada uno en su propia terminal: el backend en el puerto 8000 y el frontend en el 5173.
 
@@ -108,7 +134,29 @@ La aplicación queda disponible en `http://localhost:5173`.
 
 **Dirección de la API.** Está definida en `frontend/src/config.js`. Se puede cambiar sin tocar el código creando un archivo `.env` en la carpeta `frontend/` con la variable `VITE_API_URL`; si no existe, usa `http://127.0.0.1:8000/api`.
 
-**Despliegue.** Los pasos para publicar la aplicación en Render (backend) y Vercel (frontend) están en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md). 
+---
+
+## Despliegue
+
+La aplicación ya está publicada. Ambos servicios se actualizan solos con cada `git push` a la rama `main`, por lo que **no hay que repetir ninguna configuración** para publicar cambios.
+
+| Servicio | Qué aloja | Configuración |
+|---|---|---|
+| Render | Backend (Laravel) | Docker, Root Directory `backend` |
+| Vercel | Frontend (React) | Vite, Root Directory `frontend` |
+| Supabase | Base de datos e imágenes | PostgreSQL y Storage |
+
+Las variables de entorno que conectan los tres servicios:
+
+| Variable | Dónde se configura | Valor |
+|---|---|---|
+| `VITE_API_URL` | Vercel | Dirección de la API en Render, terminada en `/api` |
+| `FRONTEND_URL` | Render | Dominio de Vercel, para que el navegador autorice las peticiones |
+| `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` | Render | Credenciales del almacenamiento de imágenes |
+
+Los pasos completos para reproducir el despliegue desde cero están en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md).
+
+> En Vercel, las variables se aplican al construir el proyecto. Si se cambia `VITE_API_URL`, hay que volver a desplegar desde *Deployments → ⋯ → Redeploy* para que tenga efecto.
 
 ---
 
@@ -163,20 +211,23 @@ Los endpoints de escritura (`POST`, `PUT`, `DELETE`) no pueden probarse desde el
 
 | Implementación | Responsable |
 |---|---|
-| Formulario de Inicio de Sesión | Dhamar Patiño |
 | Catálogo de eventos con búsqueda y filtros | Dhamar Patiño |
 | Creación y edición de eventos | Dhamar Patiño |
 | Inicio de sesión | Dhamar Patiño |
 | Perfil de usuario | Dhamar Patiño |
+| Eventos de varios días | Dhamar Patiño |
 | Detalle del evento e inscripción | Cristina Pihuave |
 | Consulta y cancelación de inscripciones | Cristina Pihuave |
 | Creación de cuenta | Cristina Pihuave |
 | Panel del organizador | Cristina Pihuave |
 | Página de facultades | Cristina Pihuave |
+| Estado del evento e historial | Cristina Pihuave |
+| Calendario mensual de eventos | Cristina Pihuave |
+| Compartir evento y agregarlo al calendario personal | Cristina Pihuave |
+| Despliegue de la aplicación | Dhamar Patiño y Cristina Pihuave |
 
 ### Pendiente
 
 | Implementación | Responsable |
 |---|---|
 | Mejorar la presentación visual y la experiencia de uso | Dhamar Patiño y Cristina Pihuave |
-| Despliegue de la aplicación | Dhamar Patiño y Cristina Pihuave |
