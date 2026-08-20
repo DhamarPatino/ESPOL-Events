@@ -308,17 +308,15 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                             )}
 
                             {finalizado ? (
-                                <div style={warningStyle}>
-                                    Este evento ya finalizó.
-                                </div>
+                                <p style={avisoStyle}>Este evento ya finalizó.</p>
                             ) : !user ? (
                                 <div>
-                                    <div style={warningStyle}>
+                                    <p style={avisoStyle}>
                                         Inicia sesión para inscribirte en este evento.
-                                    </div>
+                                    </p>
                                     <button
                                         onClick={() => setCurrentPage('login')}
-                                        style={{ ...primaryBtn, width: '100%', marginTop: 10 }}
+                                        style={{ ...primaryBtn, width: '100%' }}
                                     >
                                         Iniciar sesión
                                     </button>
@@ -342,9 +340,9 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                                     </button>
                                 </div>
                             ) : sinCupos && !success ? (
-                                <div style={warningStyle}>
+                                <p style={avisoStyle}>
                                     Este evento ya no tiene cupos disponibles.
-                                </div>
+                                </p>
                             ) : (
                                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                                     <Field label="Nombre completo">
@@ -539,12 +537,11 @@ const errorStyle = {
     marginBottom: 14,
 };
 
-const warningStyle = {
-    background: '#f5f5f5',
-    color: '#7a7a7a',
-    border: '1px dashed #d4d4d4',
-    padding: '14px 12px',
-    borderRadius: 4,
-    fontSize: 12,
-    textAlign: 'center',
+// Aviso sencillo, sin recuadro
+const avisoStyle = {
+    margin: '0 0 14px',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#3a3a3a',
+    lineHeight: 1.5,
 };
