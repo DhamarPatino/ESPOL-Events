@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import ImagePlaceholder from '../components/ImagePlaceholder';
 import { eventService } from '../services/eventService';
 import { registrationService } from '../services/registrationService';
+import { estadoEvento, descargarICS } from '../utils/eventDates';
 
 // Detalle de un evento e inscripción de participantes -- Cristina Pihuave
 export default function EventDetailPage({ eventId, setCurrentPage, user }) {
@@ -18,6 +19,10 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
     const [sending, setSending] = useState(false);
     const [formError, setFormError] = useState(null);
     const [success, setSuccess] = useState(null);
+
+    // Inscripción existente del usuario en este evento
+    const [miInscripcion, setMiInscripcion] = useState(null);
+    const [copiado, setCopiado] = useState(false);
 
     // Carga el detalle del evento desde la API
     const fetchEvent = async () => {
@@ -46,6 +51,64 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
             setForm({ name: user.name || '', email: user.email || '' });
         }
     }, [user]);
+
+    // Revisa si el usuario ya se encuentra inscrito en este evento
+    useEffect(() => {
+        const buscarInscripcion = async () => {
+            if (!user?.email || !eventId) return;
+
+            try {
+                const misInscripciones = await registrationService.getByParticipant(user.email);
+                const encontrada = misInscripciones.find(
+                    (r) => String(r.event_id) === String(eventId)
+                );
+                setMiInscripcion(encontrada || null);
+            } catch (err) {
+                console.error('Error al verificar la inscripción:', err);
+            }
+        };
+
+        buscarInscripcion();
+    }, [user, eventId, success]);
+
+    // Cancela la inscripción desde el detalle del evento
+    const handleCancelar = async () => {
+        if (!miInscripcion) return;
+
+        const confirmar = window.confirm('¿Cancelar tu participación en este evento?');
+        if (!confirmar) return;
+
+        try {
+            setSending(true);
+            const data = await registrationService.cancel(event.id, miInscripcion.id);
+
+            setMiInscripcion(null);
+            setSuccess(null);
+            setAvailable(data.available_spots);
+            setRegistered((n) => Math.max(n - 1, 0));
+        } catch (err) {
+            setFormError(err.message);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    // Comparte el evento por WhatsApp
+    const compartirWhatsApp = () => {
+        const texto = `${event.title} - ${event.location}\n${window.location.origin}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+    };
+
+    // Copia el enlace del evento al portapapeles
+    const copiarEnlace = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.origin);
+            setCopiado(true);
+            setTimeout(() => setCopiado(false), 2000);
+        } catch (err) {
+            console.error('No se pudo copiar el enlace:', err);
+        }
+    };
 
     const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -126,6 +189,8 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
     const total = event.max_participants || 0;
     const pct = total ? Math.round((registered / total) * 100) : 0;
     const sinCupos = available <= 0;
+    const estado = estadoEvento(event);
+    const finalizado = estado.clave === 'finalizado';
 
     return (
         <div style={{ minHeight: '100vh', background: '#f5f5f5' }}>
@@ -162,10 +227,24 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                         )}
 
                         <div style={{ padding: '24px 26px 28px' }}>
-                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
                                 <Tag>{event.faculty}</Tag>
                                 <Tag>{event.category}</Tag>
                                 <Tag>{event.modality}</Tag>
+                                <span
+                                    style={{
+                                        color: estado.color,
+                                        border: `1px solid ${estado.color}55`,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        padding: '3px 8px',
+                                        borderRadius: 3,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.06em',
+                                    }}
+                                >
+                                    {estado.texto}
+                                </span>
                             </div>
 
                             <h1 style={{ margin: '0 0 16px', fontSize: 24, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.25 }}>
@@ -228,7 +307,41 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                                 <div style={errorStyle}>{formError}</div>
                             )}
 
-                            {sinCupos && !success ? (
+                            {finalizado ? (
+                                <div style={warningStyle}>
+                                    Este evento ya finalizó.
+                                </div>
+                            ) : !user ? (
+                                <div>
+                                    <div style={warningStyle}>
+                                        Inicia sesión para inscribirte en este evento.
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage('login')}
+                                        style={{ ...primaryBtn, width: '100%', marginTop: 10 }}
+                                    >
+                                        Iniciar sesión
+                                    </button>
+                                </div>
+                            ) : miInscripcion ? (
+                                <div>
+                                    <div style={successStyle}>
+                                        Ya estás inscrito en este evento.
+                                    </div>
+                                    <button
+                                        onClick={handleCancelar}
+                                        disabled={sending}
+                                        style={{
+                                            ...dangerBtn,
+                                            width: '100%',
+                                            opacity: sending ? 0.6 : 1,
+                                            cursor: sending ? 'not-allowed' : 'pointer',
+                                        }}
+                                    >
+                                        {sending ? 'Cancelando...' : 'Cancelar mi participación'}
+                                    </button>
+                                </div>
+                            ) : sinCupos && !success ? (
                                 <div style={warningStyle}>
                                     Este evento ya no tiene cupos disponibles.
                                 </div>
@@ -270,7 +383,7 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                                 </form>
                             )}
 
-                            {success && (
+                            {(success || miInscripcion) && (
                                 <button
                                     onClick={() => setCurrentPage('my-registrations')}
                                     style={{ ...secondaryBtn, width: '100%', marginTop: 10 }}
@@ -278,6 +391,32 @@ export default function EventDetailPage({ eventId, setCurrentPage, user }) {
                                     Ver mis inscripciones
                                 </button>
                             )}
+                        </div>
+
+                        {/* Compartir el evento y agregarlo al calendario */}
+                        <div style={{ ...cardStyle, padding: '20px 22px' }}>
+                            <h2 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>
+                                Compartir
+                            </h2>
+
+                            <div style={{ display: 'grid', gap: 8 }}>
+                                <button onClick={compartirWhatsApp} style={{ ...secondaryBtn, width: '100%' }}>
+                                    Compartir por WhatsApp
+                                </button>
+
+                                <button onClick={copiarEnlace} style={{ ...secondaryBtn, width: '100%' }}>
+                                    {copiado ? 'Enlace copiado' : 'Copiar enlace'}
+                                </button>
+
+                                {!finalizado && (
+                                    <button
+                                        onClick={() => descargarICS(event)}
+                                        style={{ ...secondaryBtn, width: '100%' }}
+                                    >
+                                        Agregar a mi calendario
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -365,6 +504,17 @@ const secondaryBtn = {
     fontSize: 12,
     fontWeight: 500,
     cursor: 'pointer',
+    fontFamily: 'inherit',
+};
+
+const dangerBtn = {
+    background: 'none',
+    color: '#a94442',
+    border: '1px solid #e0b4b4',
+    borderRadius: 4,
+    padding: '10px 18px',
+    fontSize: 12,
+    fontWeight: 600,
     fontFamily: 'inherit',
 };
 

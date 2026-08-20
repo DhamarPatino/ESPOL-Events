@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import EventCard from '../components/EventCard';
 import { eventService } from '../services/eventService'; // O tu servicio de eventos
+import { esPasado } from '../utils/eventDates';
 
 // Opciones por defecto para los selects de filtro
 const FACULTIES = ['Todas', 'FIEC', 'FIMCP', 'FCSH', 'FICT', 'FCNM', 'FADCOM'];
@@ -18,6 +19,8 @@ export default function HomePage({ currentPage, setCurrentPage, role = 'organize
     const [category, setCategory] = useState('Todas');
     const [date, setDate] = useState('');
     const [sortBy, setSortBy] = useState('recent');
+    // Periodo mostrado: proximos, pasados o todos
+    const [periodo, setPeriodo] = useState('proximos');
 
     // Carga de datos desde la API / Supabase / Backend
     const fetchEvents = async () => {
@@ -53,8 +56,16 @@ export default function HomePage({ currentPage, setCurrentPage, role = 'organize
         (e.description && e.description.toLowerCase().includes(search.toLowerCase()));
         const matchFaculty = faculty === 'Todas' || e.faculty === faculty;
         const matchCategory = category === 'Todas' || e.category === category;
-        const matchDate = !date || e.date === date;
-        return matchSearch && matchFaculty && matchCategory && matchDate;
+        const matchDate = !date || (e.start_date || e.date) === date;
+
+        // Por defecto se ocultan los eventos que ya terminaron
+        const pasado = esPasado(e);
+        const matchPeriodo =
+            periodo === 'todos' ||
+            (periodo === 'proximos' && !pasado) ||
+            (periodo === 'pasados' && pasado);
+
+        return matchSearch && matchFaculty && matchCategory && matchDate && matchPeriodo;
     });
 
     // 2. Ordenamiento de eventos filtrados
@@ -193,6 +204,19 @@ export default function HomePage({ currentPage, setCurrentPage, role = 'organize
             >
                 Filtrar por
             </span>
+
+            {/* Periodo: proximos, pasados o todos */}
+            <div style={{ display: 'flex', gap: 4, marginRight: 4 }}>
+                <PeriodoBtn active={periodo === 'proximos'} onClick={() => setPeriodo('proximos')}>
+                    Próximos
+                </PeriodoBtn>
+                <PeriodoBtn active={periodo === 'pasados'} onClick={() => setPeriodo('pasados')}>
+                    Historial
+                </PeriodoBtn>
+                <PeriodoBtn active={periodo === 'todos'} onClick={() => setPeriodo('todos')}>
+                    Todos
+                </PeriodoBtn>
+            </div>
 
             <FilterSelect label="Facultad" value={faculty} onChange={setFaculty} options={FACULTIES} />
             <FilterSelect label="Categoría" value={category} onChange={setCategory} options={CATEGORIES} />
@@ -367,6 +391,29 @@ function FilterSelect({ label, value, onChange, options }) {
             ))}
         </select>
         </div>
+    );
+}
+
+// Selector de periodo del catalogo -- Cristina Pihuave
+function PeriodoBtn({ children, active, onClick }) {
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                background: active ? '#2a2a2a' : '#fff',
+                color: active ? '#fff' : '#5a5a5a',
+                border: '1px solid',
+                borderColor: active ? '#2a2a2a' : '#d4d4d4',
+                borderRadius: 4,
+                padding: '6px 12px',
+                fontSize: 12,
+                fontWeight: active ? 600 : 500,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+            }}
+        >
+            {children}
+        </button>
     );
 }
 

@@ -23,8 +23,9 @@ class EventController extends Controller
             'category'         => $isDraft ? 'nullable|string|max:100' : 'required|string|max:100',
             'modality'         => $isDraft ? 'nullable|string|max:50' : 'required|string|max:50',
             'faculty'          => $isDraft ? 'nullable|string|max:100' : 'required|string|max:100',
-            'start_date'       => $isDraft ? 'nullable|date' : 'required|date',
-            'end_date'         => 'nullable|date|after_or_equal:start_date',
+            // Se limita el rango de fechas para evitar errores de tipeo en el año
+            'start_date'       => ($isDraft ? 'nullable|date' : 'required|date') . '|before:2100-01-01',
+            'end_date'         => 'nullable|date|after_or_equal:start_date|before:2100-01-01',
             'start_time'       => $isDraft ? 'nullable' : 'required|date_format:H:i,H:i:s',
             'end_time'         => 'nullable|date_format:H:i,H:i:s',
             'image'            => 'nullable',
@@ -160,8 +161,8 @@ class EventController extends Controller
             'category'         => 'sometimes|nullable|string|max:100',
             'modality'         => 'sometimes|nullable|string|max:50',
             'faculty'          => 'sometimes|nullable|string|max:100',
-            'start_date'       => 'sometimes|nullable|date',
-            'end_date'         => 'sometimes|nullable|date|after_or_equal:start_date',
+            'start_date'       => 'sometimes|nullable|date|before:2100-01-01',
+            'end_date'         => 'sometimes|nullable|date|after_or_equal:start_date|before:2100-01-01',
             'start_time'       => 'sometimes|nullable|date_format:H:i,H:i:s',
             'end_time'         => 'nullable|date_format:H:i,H:i:s',
             'image'            => 'nullable',
@@ -176,6 +177,18 @@ class EventController extends Controller
 
         if (isset($validated['start_date']) && empty($validated['end_date']) && empty($event->end_date)) {
             $validated['end_date'] = $validated['start_date'];
+        }
+
+        // No se permite reducir los cupos por debajo de los inscritos -- Cristina Pihuave
+        if (isset($validated['max_participants'])) {
+            $registered = $event->registeredCount();
+
+            if ($validated['max_participants'] < $registered) {
+                return response()->json([
+                    'message' => 'El máximo de participantes no puede ser menor a los inscritos actuales.',
+                    'registered_participants' => $registered,
+                ], 422);
+            }
         }
 
         $event->update($validated);

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import ImagePlaceholder from './ImagePlaceholder';
+import { estadoEvento } from '../utils/eventDates';
 
 export default function EventCard({ event, onSelect }) {
     const [imgError, setImgError] = useState(false);
+    const estado = estadoEvento(event);
 
     // Mapeo de campos de la base de datos
     const maxSeats = event?.max_participants || 100;
@@ -77,18 +79,45 @@ export default function EventCard({ event, onSelect }) {
             onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
         >
             {/* RENDERIZADO DE IMAGEN O PLACEHOLDER */}
-            {event?.image && !imgError ? (
-                <div style={{ width: '100%', height: 160, overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
-                    <img
-                        src={event.image}
-                        alt={event.title || 'Evento'}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={() => setImgError(true)}
-                    />
-                </div>
-            ) : (
-                <ImagePlaceholder height={160} label="Imagen del evento" style={{ borderRadius: 0 }} />
-            )}
+            <div style={{ position: 'relative' }}>
+                {event?.image && !imgError ? (
+                    <div style={{ width: '100%', height: 160, overflow: 'hidden', backgroundColor: '#f5f5f5' }}>
+                        <img
+                            src={event.image}
+                            alt={event.title || 'Evento'}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                filter: estado.clave === 'finalizado' ? 'grayscale(1) opacity(0.65)' : 'none',
+                            }}
+                            onError={() => setImgError(true)}
+                        />
+                    </div>
+                ) : (
+                    <ImagePlaceholder height={160} label="Imagen del evento" style={{ borderRadius: 0 }} />
+                )}
+
+                {/* Estado del evento segun su fecha */}
+                <span
+                    style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        background: '#fff',
+                        color: estado.color,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '4px 9px',
+                        borderRadius: 3,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        border: `1px solid ${estado.color}33`,
+                    }}
+                >
+                    {estado.texto}
+                </span>
+            </div>
 
             <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                 {/* Tags de Facultad y Categoría */}

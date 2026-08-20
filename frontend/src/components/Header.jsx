@@ -105,6 +105,13 @@ export default function Header({
                 Facultades
             </button>
 
+            <button
+                onClick={() => setCurrentPage('calendar')}
+                style={navBtnStyle(currentPage === 'calendar')}
+            >
+                Calendario
+            </button>
+
     {/* Rutas de Usuario (Estudiante/Asistente) */}
             {isLoggedIn && role === 'user' && (
                 <button

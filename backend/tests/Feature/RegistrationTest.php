@@ -5,12 +5,21 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    // Las rutas de inscripciones requieren sesion iniciada
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Sanctum::actingAs(User::factory()->create());
+    }
 
     // Crea un evento de prueba
     private function crearEvento($cupos = 2)
@@ -21,7 +30,8 @@ class RegistrationTest extends TestCase
             'category' => 'Academico',
             'modality' => 'Virtual',
             'faculty' => 'FIEC',
-            'date' => '2026-10-01',
+            'start_date' => '2026-10-01',
+            'end_date' => '2026-10-01',
             'start_time' => '15:30',
             'location' => 'Zoom',
             'max_participants' => $cupos,

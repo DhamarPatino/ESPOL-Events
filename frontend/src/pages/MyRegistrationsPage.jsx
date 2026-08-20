@@ -3,7 +3,6 @@ import { registrationService } from '../services/registrationService';
 
 // Consulta y cancelación de las inscripciones del participante -- Cristina Pihuave
 export default function MyRegistrationsPage({ user, setCurrentPage }) {
-    const [email, setEmail] = useState(user?.email || '');
     const [consulted, setConsulted] = useState(!!user?.email);
 
     const [registrations, setRegistrations] = useState([]);
@@ -31,24 +30,10 @@ export default function MyRegistrationsPage({ user, setCurrentPage }) {
 
     useEffect(() => {
         if (user?.email) {
-            setEmail(user.email);
             setConsulted(true);
             fetchRegistrations(user.email);
         }
     }, [user]);
-
-    const handleSearch = (e) => {
-        e.preventDefault();
-        setMessage(null);
-
-        if (!email.trim()) {
-            setError('Ingresa el correo con el que te inscribiste.');
-            return;
-        }
-
-        setConsulted(true);
-        fetchRegistrations(email.trim());
-    };
 
     // Cancela una inscripción y actualiza el listado
     const handleCancel = async (registration) => {
@@ -93,23 +78,16 @@ export default function MyRegistrationsPage({ user, setCurrentPage }) {
                     </p>
                 </div>
 
-                {/* Consulta por correo cuando no hay sesión iniciada */}
+                {/* La consulta de inscripciones requiere sesion iniciada */}
                 {!user?.email && (
-                    <form onSubmit={handleSearch} style={{ ...cardStyle, padding: '18px 20px', marginBottom: 20, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <label style={{ fontSize: 12, color: '#5a5a5a', fontWeight: 500 }}>
-                                Correo con el que te inscribiste
-                            </label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="tucorreo@espol.edu.ec"
-                                style={inputStyle}
-                            />
-                        </div>
-                        <button type="submit" style={primaryBtn}>Consultar</button>
-                    </form>
+                    <div style={{ ...cardStyle, padding: '40px 20px', marginBottom: 20, textAlign: 'center' }}>
+                        <p style={{ fontSize: 14, color: '#7a7a7a', margin: '0 0 16px' }}>
+                            Inicia sesión para ver los eventos en los que participas.
+                        </p>
+                        <button onClick={() => setCurrentPage('login')} style={primaryBtn}>
+                            Iniciar sesión
+                        </button>
+                    </div>
                 )}
 
                 {message && <div style={successStyle}>{message}</div>}

@@ -1,4 +1,22 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+import { API_BASE_URL } from '../config';
+// src/services/registrationService.js
+
+
+
+// Las rutas de inscripciones requieren sesion iniciada
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+};
 
 // Servicio de inscripciones a eventos -- Cristina Pihuave
 export const registrationService = {
@@ -6,16 +24,16 @@ export const registrationService = {
   register: async (eventId, participant) => {
     const response = await fetch(`${API_BASE_URL}/events/${eventId}/registrations`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(participant),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Debes iniciar sesión para inscribirte en un evento.');
+      }
       throw new Error(data.message || 'Error al registrar la participación.');
     }
 
@@ -28,11 +46,11 @@ export const registrationService = {
       `${API_BASE_URL}/events/${eventId}/registrations/${registrationId}`,
       {
         method: 'DELETE',
-        headers: { 'Accept': 'application/json' },
+        headers: getAuthHeaders(),
       }
     );
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(data.message || 'Error al cancelar la participación.');
@@ -44,7 +62,7 @@ export const registrationService = {
   // 3. Consultar los participantes inscritos en un evento
   getByEvent: async (eventId) => {
     const response = await fetch(`${API_BASE_URL}/events/${eventId}/registrations`, {
-      headers: { 'Accept': 'application/json' },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) throw new Error('Error al consultar los participantes.');
@@ -55,7 +73,7 @@ export const registrationService = {
   getByParticipant: async (email) => {
     const response = await fetch(
       `${API_BASE_URL}/registrations?email=${encodeURIComponent(email)}`,
-      { headers: { 'Accept': 'application/json' } }
+      { headers: getAuthHeaders() }
     );
 
     if (!response.ok) throw new Error('Error al consultar tus inscripciones.');

@@ -158,6 +158,14 @@ export default function CreateEventPage({ navigate, mode = 'create', eventId = n
             return;
         }
 
+        // Evita años mal escritos, como 82026 en lugar de 2026
+        const anio = parseInt((form.date || '').split('-')[0], 10);
+        if (anio && (anio < 2000 || anio > 2100)) {
+            setError(`El año ${anio} no es válido. Revisa la fecha del evento.`);
+            setLoading(false);
+            return;
+        }
+
         // 3. Armado del FormData
         const formData = new FormData();
         formData.append('title', form.title);

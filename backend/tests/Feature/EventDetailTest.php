@@ -5,12 +5,21 @@
 namespace Tests\Feature;
 
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class EventDetailTest extends TestCase
 {
     use RefreshDatabase;
+
+    // Las rutas de escritura requieren sesion iniciada
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Sanctum::actingAs(User::factory()->create());
+    }
 
     // Crea un evento de prueba
     private function crearEvento($cupos = 50)
@@ -21,7 +30,8 @@ class EventDetailTest extends TestCase
             'category' => 'Academico',
             'modality' => 'Presencial',
             'faculty' => 'FIEC',
-            'date' => '2026-09-15',
+            'start_date' => '2026-09-15',
+            'end_date' => '2026-09-15',
             'start_time' => '10:00',
             'location' => 'Auditorio FIEC',
             'max_participants' => $cupos,

@@ -6,6 +6,7 @@ import Header from './components/Header';
 // Importación de tus páginas
 import HomePage from './pages/HomePage';
 import FacultiesPage from './pages/FacultiesPage';
+import CalendarPage from './pages/CalendarPage';
 import MyRegistrationsPage from './pages/MyRegistrationsPage';
 import OrganizerDashboardPage from './pages/OrganizerDashboardPage';
 import CreateEventPage from './pages/CreateEventPage';
@@ -72,6 +73,8 @@ export default function App() {
         return <HomePage setCurrentPage={navigate} user={user} role={role} facultyFilter={navParam} />;
       case 'faculties':
         return <FacultiesPage setCurrentPage={navigate} />;
+      case 'calendar':
+        return <CalendarPage setCurrentPage={navigate} />;
       case 'event-detail':
         return <EventDetailPage eventId={navParam} setCurrentPage={navigate} user={user} />;
       case 'my-registrations':

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE_URL } from '../config';
 
 // Creación de cuenta de usuario -- Cristina Pihuave
 export default function RegisterPage({ onLoginSuccess, setCurrentPage }) {
@@ -38,7 +39,7 @@ export default function RegisterPage({ onLoginSuccess, setCurrentPage }) {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:8000/api/register', {
+            const response = await fetch(`${API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -106,7 +106,9 @@ La aplicación queda disponible en `http://localhost:5173`.
 
 **Imágenes de los eventos.** Se comprimen automáticamente (se reducen a 1280 px de ancho y se convierten a WebP) y se suben a Supabase Storage, por lo que quedan accesibles desde cualquier equipo. Si las variables `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` del `.env` están vacías, se guardan en la carpeta local `storage/` y solo se ven en el equipo que las subió; para ese caso es necesario el `php artisan storage:link` del paso 2.
 
-**Puertos.** La dirección de la API está definida en los archivos de `frontend/src/services/`. 
+**Dirección de la API.** Está definida en `frontend/src/config.js`. Se puede cambiar sin tocar el código creando un archivo `.env` en la carpeta `frontend/` con la variable `VITE_API_URL`; si no existe, usa `http://127.0.0.1:8000/api`.
+
+**Despliegue.** Los pasos para publicar la aplicación en Render (backend) y Vercel (frontend) están en [docs/DESPLIEGUE.md](docs/DESPLIEGUE.md). 
 
 ---
 
